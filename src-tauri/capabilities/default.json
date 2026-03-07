@@ -1,0 +1,11 @@
+{
+  "identifier": "default",
+  "description": "Default capabilities for Promptcase",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "shell:allow-spawn",
+    "shell:allow-stdin-write",
+    "shell:allow-execute"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "promptcase-sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc && node --experimental-specifier-resolution=node dist/index.js --version",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.0",
+    "diff-match-patch": "^1.0.5",
+    "gray-matter": "^4.0.3",
+    "js-tiktoken": "^1.0.15",
+    "minisearch": "^7.1.0",
+    "simple-git": "^3.27.0"
+  },
+  "devDependencies": {
+    "@types/diff-match-patch": "^1.0.36",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

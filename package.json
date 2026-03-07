@@ -1,0 +1,46 @@
+{
+  "name": "promptcase",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "sidecar:build": "npm --prefix sidecar run build",
+    "sidecar:dev": "npm --prefix sidecar run dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:sidecar": "npm --prefix sidecar run test",
+    "test:all": "npm run test && npm run test:sidecar"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.18.0",
+    "@codemirror/commands": "^6.7.0",
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/lang-yaml": "^6.1.0",
+    "@codemirror/language": "^6.10.0",
+    "@codemirror/merge": "^6.7.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.5.0",
+    "@codemirror/view": "^6.35.0",
+    "@lezer/highlight": "^1.2.0",
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.2.0",
+    "codemirror": "^6.0.0",
+    "svelte-spa-router": "^4.0.1"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tauri-apps/cli": "^2.2.0",
+    "@testing-library/jest-dom": "^6.6.0",
+    "@testing-library/svelte": "^5.2.0",
+    "jsdom": "^25.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vitest": "^3.0.0"
+  }
+}
