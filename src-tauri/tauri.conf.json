@@ -36,14 +36,7 @@
   },
   "plugins": {
     "shell": {
-      "sidecar": true,
-      "scope": [
-        {
-          "name": "promptcase-sidecar",
-          "sidecar": true,
-          "args": []
-        }
-      ]
+      "open": true
     }
   }
 }

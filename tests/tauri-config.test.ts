@@ -36,12 +36,22 @@ describe("tauri.conf.json", () => {
     expect(csp).not.toContain("'unsafe-eval'");
   });
 
-  it("sidecar shell scope does not allow arbitrary args", () => {
+  it("shell plugin has no scope in config (belongs in capabilities)", () => {
     const shell = config.plugins?.shell;
     expect(shell).toBeDefined();
-    for (const entry of shell.scope) {
-      if (entry.sidecar) {
-        expect(entry.args).not.toBe(true);
+    expect(shell.scope).toBeUndefined();
+  });
+
+  it("capabilities restrict sidecar args", () => {
+    const capsPath = resolve(dirname(__filename2), "../src-tauri/capabilities/default.json");
+    const caps = JSON.parse(readFileSync(capsPath, "utf-8"));
+    for (const perm of caps.permissions) {
+      if (typeof perm === "object" && perm.allow) {
+        for (const entry of perm.allow) {
+          if (entry.sidecar) {
+            expect(entry.args).not.toBe(true);
+          }
+        }
       }
     }
   });
