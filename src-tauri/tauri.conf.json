@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/nickarora/tauri-docs/next/references/config/2/schema.json",
   "productName": "Promptcase",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "identifier": "com.promptcase.app",
   "build": {
     "beforeDevCommand": "npm run dev",

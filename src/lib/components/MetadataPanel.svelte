@@ -1,5 +1,25 @@
 <script lang="ts">
-  import { activeFile } from "../stores/editor";
+  import { activeFile, saveFile } from "../stores/editor";
+  import { api } from "../ipc";
+
+  let newTag = $state("");
+
+  async function addTag() {
+    const tag = newTag.trim().toLowerCase();
+    if (!tag || !$activeFile) return;
+    if ($activeFile.frontmatter.tags.includes(tag)) { newTag = ""; return; }
+    const updatedTags = [...$activeFile.frontmatter.tags, tag];
+    await api.writeFile($activeFile.path, { tags: updatedTags });
+    activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
+    newTag = "";
+  }
+
+  async function removeTag(tag: string) {
+    if (!$activeFile) return;
+    const updatedTags = $activeFile.frontmatter.tags.filter((t) => t !== tag);
+    await api.writeFile($activeFile.path, { tags: updatedTags });
+    activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
+  }
 </script>
 
 {#if $activeFile}
@@ -19,11 +39,17 @@
       <label>Tags</label>
       <div class="tags">
         {#each $activeFile.frontmatter.tags as tag}
-          <span class="tag">#{tag}</span>
+          <button class="tag" onclick={() => removeTag(tag)}>#{tag} <span class="tag-x">x</span></button>
         {/each}
-        {#if $activeFile.frontmatter.tags.length === 0}
-          <span class="empty">No tags</span>
-        {/if}
+      </div>
+      <div class="tag-input-row">
+        <input
+          class="tag-input"
+          type="text"
+          placeholder="Add tag..."
+          bind:value={newTag}
+          onkeydown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+        />
       </div>
     </div>
     {#if $activeFile.frontmatter.model_targets?.length}
@@ -100,11 +126,42 @@
     background: #a78bfa15;
     padding: 1px 6px;
     border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
   }
-  .empty {
+  .tag:hover {
+    background: #a78bfa25;
+  }
+  .tag-x {
+    font-size: 10px;
+    color: #71717a;
+  }
+  .tag:hover .tag-x {
+    color: #f87171;
+  }
+  .tag-input-row {
+    margin-top: 4px;
+  }
+  .tag-input {
+    width: 100%;
+    padding: 3px 6px;
+    background: #18181b;
+    border: 1px solid #3f3f46;
+    border-radius: 3px;
+    color: #d4d4d8;
     font-size: 12px;
+    outline: none;
+    font-family: inherit;
+  }
+  .tag-input:focus {
+    border-color: #a78bfa;
+  }
+  .tag-input::placeholder {
     color: #52525b;
-    font-style: italic;
   }
   .models {
     display: flex;

@@ -114,7 +114,34 @@ async function rpcCall<T>(method: string, params?: unknown): Promise<T> {
 }
 
 // Mock implementation for development without Tauri
-const mockFiles = new Map<string, PromptFile>();
+// Persist to localStorage so data survives page reloads
+const MOCK_STORAGE_KEY = "promptcase-mock-files";
+
+function loadMockFiles(): Map<string, PromptFile> {
+  try {
+    const stored = localStorage.getItem(MOCK_STORAGE_KEY);
+    if (stored) {
+      const entries: [string, PromptFile][] = JSON.parse(stored);
+      return new Map(entries);
+    }
+  } catch {
+    // ignore corrupt data
+  }
+  return new Map();
+}
+
+function saveMockFiles(): void {
+  try {
+    localStorage.setItem(
+      MOCK_STORAGE_KEY,
+      JSON.stringify([...mockFiles.entries()]),
+    );
+  } catch {
+    // ignore quota errors
+  }
+}
+
+const mockFiles = loadMockFiles();
 
 function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
   const p = (params ?? {}) as Record<string, unknown>;
@@ -169,12 +196,36 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
         raw: "",
       };
       mockFiles.set(file.path, file);
+      saveMockFiles();
       return Promise.resolve(file as T);
+    }
+
+    case "file.write": {
+      const existing = mockFiles.get(p.path as string);
+      if (existing) {
+        if (p.frontmatter) Object.assign(existing.frontmatter, p.frontmatter as object);
+        if (p.body != null) existing.body = p.body as string;
+        existing.frontmatter.modified = new Date().toISOString();
+      }
+      saveMockFiles();
+      return Promise.resolve({ ok: true } as T);
     }
 
     case "file.delete":
       mockFiles.delete(p.path as string);
+      saveMockFiles();
       return Promise.resolve({ ok: true } as T);
+
+    case "file.move": {
+      const file = mockFiles.get(p.from as string);
+      if (file) {
+        mockFiles.delete(p.from as string);
+        file.path = p.to as string;
+        mockFiles.set(file.path, file);
+      }
+      saveMockFiles();
+      return Promise.resolve({ ok: true } as T);
+    }
 
     case "git.status":
       return Promise.resolve({
@@ -205,6 +256,26 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
         unresolvedVariables: [],
         includedFragments: [],
       } as T);
+
+    case "template.variables":
+      return Promise.resolve([] as T);
+
+    case "template.lint_all":
+      return Promise.resolve({} as T);
+
+    case "tokens.count_resolved":
+      return Promise.resolve(
+        Math.ceil(((mockFiles.get(p.path as string)?.body || "").length) / 4) as T,
+      );
+
+    case "search.reindex":
+      return Promise.resolve({ ok: true } as T);
+
+    case "git.diff":
+      return Promise.resolve({ additions: [], deletions: [], hunks: [] } as T);
+
+    case "git.restore":
+      return Promise.resolve(null as T);
 
     default:
       return Promise.reject(new Error(`Mock: Unknown method ${method}`));

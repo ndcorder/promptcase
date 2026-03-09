@@ -1,6 +1,9 @@
 <script lang="ts">
-  import { openTabs, closeTab, openFile, hasUnsavedChanges } from "../stores/editor";
+  import { openTabs, closeTab, openFile, hasUnsavedChanges, saveFile } from "../stores/editor";
   import { get } from "svelte/store";
+  import ConfirmDialog from "./ConfirmDialog.svelte";
+
+  let confirmPath = $state<string | null>(null);
 
   function handleTabClick(path: string) {
     openFile(path);
@@ -10,7 +13,8 @@
     e.stopPropagation();
     const tab = get(openTabs).find((t) => t.path === path);
     if (tab?.modified || (tab?.active && get(hasUnsavedChanges))) {
-      if (!window.confirm("You have unsaved changes. Close anyway?")) return;
+      confirmPath = path;
+      return;
     }
     closeTab(path);
   }
@@ -38,7 +42,20 @@
       </button>
     </div>
   {/each}
+  {#if $hasUnsavedChanges}
+    <button class="save-btn" onclick={saveFile} title="Save (Cmd+S)">Save</button>
+  {/if}
 </div>
+
+<ConfirmDialog
+  visible={confirmPath !== null}
+  title="Unsaved Changes"
+  message="You have unsaved changes. Close anyway?"
+  confirmLabel="Close"
+  cancelLabel="Cancel"
+  onConfirm={() => { if (confirmPath) { closeTab(confirmPath); confirmPath = null; } }}
+  onCancel={() => { confirmPath = null; }}
+/>
 
 <style>
   .tabs-bar {
@@ -88,5 +105,22 @@
   }
   .close-btn:hover {
     color: #d4d4d8;
+  }
+  .save-btn {
+    margin-left: auto;
+    padding: 0 12px;
+    height: 36px;
+    background: none;
+    border: none;
+    color: #a78bfa;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .save-btn:hover {
+    color: #c4b5fd;
+    background: #27272a;
   }
 </style>

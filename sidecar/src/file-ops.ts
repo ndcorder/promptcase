@@ -25,8 +25,11 @@ export class FileOps {
   }
 
   private safePath(filePath: string): string {
+    if (filePath.includes("..")) {
+      throw new Error(`Path traversal denied: ${filePath}`);
+    }
     const resolved = resolve(this.repoRoot, filePath);
-    if (!resolved.startsWith(this.repoRoot)) {
+    if (resolved !== this.repoRoot && !resolved.startsWith(this.repoRoot + "/")) {
       throw new Error(`Path traversal denied: ${filePath}`);
     }
     return resolved;

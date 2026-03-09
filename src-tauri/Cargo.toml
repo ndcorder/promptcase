@@ -1,6 +1,9 @@
 [package]
 name = "promptcase"
-version = "0.1.0"
+version = "1.0.0"
+description = "Promptcase desktop app shell"
+authors = ["Promptcase Contributors"]
+license = "GPL-3.0-only"
 edition = "2021"
 
 [build-dependencies]

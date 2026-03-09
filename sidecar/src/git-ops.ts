@@ -5,14 +5,14 @@ function validateCommitRef(ref: string): string {
   if (!/^[0-9a-fA-F]{4,40}$|^HEAD(~\d+)?$|^[a-zA-Z0-9._\/-]+$/.test(ref)) {
     throw new Error(`Invalid commit reference: ${ref}`);
   }
-  if (ref.startsWith("-")) {
+  if (ref.startsWith("-") || ref.includes("..")) {
     throw new Error(`Invalid commit reference: ${ref}`);
   }
   return ref;
 }
 
 function validateFilePath(filePath: string): string {
-  if (filePath.startsWith("-")) {
+  if (filePath.startsWith("-") || filePath.includes("..")) {
     throw new Error(`Invalid file path: ${filePath}`);
   }
   return filePath;
@@ -137,8 +137,15 @@ export class GitOps {
     if (!content) return null;
 
     const { writeFile } = await import("node:fs/promises");
-    const { join } = await import("node:path");
-    await writeFile(join(this.repoPath, filePath), content, "utf-8");
+    const { resolve } = await import("node:path");
+    if (filePath.includes("..")) {
+      throw new Error(`Path traversal denied: ${filePath}`);
+    }
+    const fullPath = resolve(this.repoPath, filePath);
+    if (!fullPath.startsWith(this.repoPath + "/")) {
+      throw new Error(`Path traversal denied: ${filePath}`);
+    }
+    await writeFile(fullPath, content, "utf-8");
 
     return this.autoCommit(
       [filePath],

@@ -1,5 +1,8 @@
 <script lang="ts">
-  import { saveFile, showPreview, showSidebar, showInspector, showBottomPanel } from "../stores/editor";
+  import { saveFile, showPreview, showSidebar, showInspector, showBottomPanel, activeFile, resolvedText } from "../stores/editor";
+  import { api } from "../ipc";
+  import { loadFiles } from "../stores/files";
+  import { get } from "svelte/store";
 
   interface Command {
     id: string;
@@ -20,6 +23,8 @@
 
   const commands: Command[] = [
     { id: "save", label: "Save File", shortcut: "Cmd+S", action: () => { saveFile(); onClose(); } },
+    { id: "copy-resolved", label: "Copy Resolved Prompt", action: () => { navigator.clipboard.writeText(get(resolvedText)); onClose(); } },
+    { id: "copy-raw", label: "Copy Raw Content", action: () => { const f = get(activeFile); if (f) navigator.clipboard.writeText(f.body); onClose(); } },
     { id: "preview", label: "Toggle Resolved Preview", shortcut: "Cmd+E", action: () => { showPreview.update((v) => !v); onClose(); } },
     { id: "sidebar", label: "Toggle Sidebar", shortcut: "Cmd+B", action: () => { showSidebar.update((v) => !v); onClose(); } },
     { id: "inspector", label: "Toggle Inspector", action: () => { showInspector.update((v) => !v); onClose(); } },

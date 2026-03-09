@@ -1,49 +1,125 @@
 <script lang="ts">
   import FolderTree from "./FolderTree.svelte";
   import TagFilter from "./TagFilter.svelte";
-  import { folderTree, loadFiles } from "../stores/files";
-  import { openFile } from "../stores/editor";
+  import InputDialog from "./InputDialog.svelte";
+  import ConfirmDialog from "./ConfirmDialog.svelte";
+  import FileContextMenu from "./FileContextMenu.svelte";
+  import { folderTree, loadFiles, promptEntries } from "../stores/files";
+  import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api } from "../ipc";
+  import { get } from "svelte/store";
 
   let creating = $state(false);
+
+  // Input dialog state (create / rename)
+  let dialogVisible = $state(false);
+  let dialogTitle = $state("");
+  let dialogDefault = $state("");
+  let dialogMode: "create-prompt" | "create-fragment" | "rename" = "create-prompt";
+
+  // Confirm dialog state (delete)
+  let deleteConfirmVisible = $state(false);
+  let deleteTargetPath = $state("");
+
+  // Context menu state
+  let contextMenu = $state<{ path: string; x: number; y: number } | null>(null);
 
   function handleFileSelect(path: string) {
     openFile(path);
   }
 
-  async function handleNewPrompt() {
+  function handleFileContext(path: string, x: number, y: number) {
+    contextMenu = { path, x, y };
+  }
+
+  function handleNewPrompt() {
+    dialogMode = "create-prompt";
+    dialogTitle = "New Prompt";
+    dialogDefault = "New Prompt";
+    dialogVisible = true;
+  }
+
+  function handleNewFragment() {
+    dialogMode = "create-fragment";
+    dialogTitle = "New Fragment";
+    dialogDefault = "New Fragment";
+    dialogVisible = true;
+  }
+
+  function handleRename(path: string) {
+    const entries = get(promptEntries);
+    const entry = entries.find((e) => e.path === path);
+    dialogMode = "rename";
+    dialogTitle = "Rename";
+    dialogDefault = entry?.frontmatter.title || path.split("/").pop()?.replace(/\.md$/, "") || "";
+    deleteTargetPath = path; // reuse for rename source
+    dialogVisible = true;
+  }
+
+  async function handleDuplicate(path: string) {
+    try {
+      const file = await api.readFile(path);
+      const baseName = path.replace(/\.md$/, "");
+      const newPath = baseName + "-copy.md";
+      const newTitle = (file.frontmatter.title || "Untitled") + " (Copy)";
+      const created = await api.createFile(newPath, newTitle, file.frontmatter.type);
+      await api.writeFile(created.path, undefined, file.body);
+      await loadFiles();
+      openFile(created.path);
+    } catch (err) {
+      console.error("Failed to duplicate:", err);
+    }
+  }
+
+  function handleDeleteRequest(path: string) {
+    deleteTargetPath = path;
+    deleteConfirmVisible = true;
+  }
+
+  async function handleDeleteConfirm() {
+    deleteConfirmVisible = false;
+    try {
+      await api.deleteFile(deleteTargetPath);
+      closeTab(deleteTargetPath);
+      await loadFiles();
+    } catch (err) {
+      console.error("Failed to delete:", err);
+    }
+  }
+
+  async function handleDialogConfirm(name: string) {
+    dialogVisible = false;
     if (creating) return;
     creating = true;
     try {
-      const name = window.prompt("Prompt name:", "New Prompt");
-      if (!name) return;
-      const fileName = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-      const file = await api.createFile(fileName, name, "prompt");
-      await loadFiles();
-      openFile(file.path);
+      if (dialogMode === "rename") {
+        const oldPath = deleteTargetPath;
+        const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+        const newPath = dir + slug;
+        await api.moveFile(oldPath, newPath);
+        await api.writeFile(newPath, { title: name });
+        closeTab(oldPath);
+        await loadFiles();
+        openFile(newPath);
+      } else {
+        const isFragment = dialogMode === "create-fragment";
+        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+        const fileName = isFragment ? "fragments/" + slug : slug;
+        const file = await api.createFile(fileName, name, isFragment ? "fragment" : "prompt");
+        await loadFiles();
+        openFile(file.path);
+      }
     } catch (err) {
-      console.error("Failed to create prompt:", err);
+      console.error(`Failed to ${dialogMode}:`, err);
     } finally {
       creating = false;
     }
   }
 
-  async function handleNewFragment() {
-    if (creating) return;
-    creating = true;
-    try {
-      const name = window.prompt("Fragment name:", "New Fragment");
-      if (!name) return;
-      const fileName = "fragments/" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-      const file = await api.createFile(fileName, name, "fragment");
-      await loadFiles();
-      openFile(file.path);
-    } catch (err) {
-      console.error("Failed to create fragment:", err);
-    } finally {
-      creating = false;
-    }
+  function handleDialogCancel() {
+    dialogVisible = false;
   }
 </script>
 
@@ -68,11 +144,42 @@
       <FolderTree
         node={$folderTree}
         onFileSelect={handleFileSelect}
+        onFileContext={handleFileContext}
         selectedPath={$selectedPath}
       />
     {/if}
   </div>
 </aside>
+
+<InputDialog
+  visible={dialogVisible}
+  title={dialogTitle}
+  placeholder="Enter a name..."
+  defaultValue={dialogDefault}
+  onConfirm={handleDialogConfirm}
+  onCancel={handleDialogCancel}
+/>
+
+<ConfirmDialog
+  visible={deleteConfirmVisible}
+  title="Delete File"
+  message="This will permanently delete this file. Are you sure?"
+  confirmLabel="Delete"
+  cancelLabel="Cancel"
+  onConfirm={handleDeleteConfirm}
+  onCancel={() => { deleteConfirmVisible = false; }}
+/>
+
+{#if contextMenu}
+  <FileContextMenu
+    x={contextMenu.x}
+    y={contextMenu.y}
+    onRename={() => handleRename(contextMenu!.path)}
+    onDuplicate={() => handleDuplicate(contextMenu!.path)}
+    onDelete={() => handleDeleteRequest(contextMenu!.path)}
+    onClose={() => { contextMenu = null; }}
+  />
+{/if}
 
 <style>
   .sidebar {

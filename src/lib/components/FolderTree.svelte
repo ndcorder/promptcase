@@ -5,10 +5,11 @@
     node: FolderNode;
     depth?: number;
     onFileSelect: (path: string) => void;
+    onFileContext?: (path: string, x: number, y: number) => void;
     selectedPath: string | null;
   }
 
-  let { node, depth = 0, onFileSelect, selectedPath }: Props = $props();
+  let { node, depth = 0, onFileSelect, onFileContext, selectedPath }: Props = $props();
   let expanded = $state(node.expanded);
 
   function toggleExpand() {
@@ -37,6 +38,7 @@
       node={child}
       depth={node.name ? depth + 1 : depth}
       {onFileSelect}
+      {onFileContext}
       {selectedPath}
     />
   {/each}
@@ -47,6 +49,7 @@
       class:selected={selectedPath === file.path}
       style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 4}px"
       onclick={() => onFileSelect(file.path)}
+      oncontextmenu={(e) => { e.preventDefault(); onFileContext?.(file.path, e.clientX, e.clientY); }}
     >
       <span class="file-icon" class:fragment={file.frontmatter.type === "fragment"}>
         {getIcon(file)}

@@ -5,6 +5,7 @@
 
   let loading = $state(false);
   let lastPath = "";
+  let copied = $state(false);
 
   async function loadPreview() {
     const file = $activeFile;
@@ -35,7 +36,14 @@
 <div class="resolved-preview">
   <div class="preview-header">
     <span>Resolved Preview</span>
-    <button class="refresh" onclick={loadPreview}>Refresh</button>
+    <div class="preview-actions">
+      <button class="header-btn" onclick={async () => {
+        await navigator.clipboard.writeText(get(resolvedText));
+        copied = true;
+        setTimeout(() => copied = false, 1500);
+      }}>{copied ? "Copied!" : "Copy"}</button>
+      <button class="header-btn" onclick={loadPreview}>Refresh</button>
+    </div>
   </div>
   <div class="preview-content">
     {#if loading}
@@ -62,7 +70,11 @@
     font-size: 12px;
     color: #a1a1aa;
   }
-  .refresh {
+  .preview-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .header-btn {
     background: none;
     border: 1px solid #3f3f46;
     color: #a1a1aa;
@@ -72,7 +84,7 @@
     font-size: 11px;
     font-family: inherit;
   }
-  .refresh:hover {
+  .header-btn:hover {
     background: #27272a;
   }
   .preview-content {

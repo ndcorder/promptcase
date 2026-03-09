@@ -1,6 +1,8 @@
 {
   "name": "promptcase-sidecar",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "description": "Node.js sidecar backend for Promptcase",
+  "license": "GPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {
