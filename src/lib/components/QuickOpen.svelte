@@ -68,13 +68,19 @@
 {#if visible}
   <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onClose(); }} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label="Quick open" tabindex="-1">
     <div class="quick-open">
-      <input
-        bind:this={inputEl}
-        type="text"
-        placeholder="Search prompts..."
-        bind:value={query}
-        onkeydown={handleKeydown}
-      />
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14">
+          <circle cx="5.5" cy="5.5" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <path d="M8.5 8.5L12.5 12.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input
+          bind:this={inputEl}
+          type="text"
+          placeholder="Search prompts..."
+          bind:value={query}
+          onkeydown={handleKeydown}
+        />
+      </div>
       <div class="results">
         {#each results as entry, i}
           <button
@@ -101,7 +107,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #00000060;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     padding-top: 15vh;
@@ -110,48 +118,57 @@
   .quick-open {
     width: 560px;
     max-height: 400px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 20px 60px #00000060;
+    box-shadow: var(--shadow-xl);
     align-self: flex-start;
   }
+  .search-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+  }
+  .search-icon {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
   input {
-    width: 100%;
-    padding: 12px 16px;
+    flex: 1;
+    padding: var(--space-3) 0;
     background: none;
     border: none;
-    border-bottom: 1px solid #3f3f46;
-    color: #d4d4d8;
-    font-size: 15px;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
     outline: none;
     font-family: inherit;
-  }
-  input::placeholder {
-    color: #52525b;
   }
   .results {
     max-height: 320px;
     overflow-y: auto;
+    padding: var(--space-1);
   }
   .result {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    color: #d4d4d8;
-    font-size: 14px;
-    cursor: pointer;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
     text-align: left;
-    font-family: inherit;
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
   }
   .result:hover,
   .result.selected {
-    background: #3f3f46;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .result.selected {
+    background: var(--accent-subtle);
   }
   .result-title {
     overflow: hidden;
@@ -159,15 +176,15 @@
     white-space: nowrap;
   }
   .result-path {
-    font-size: 12px;
-    color: #71717a;
-    margin-left: 12px;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    margin-left: var(--space-3);
     flex-shrink: 0;
   }
   .no-results {
-    padding: 16px;
+    padding: var(--space-4);
     text-align: center;
-    color: #52525b;
-    font-size: 13px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-base);
   }
 </style>

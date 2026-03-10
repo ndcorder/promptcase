@@ -1,0 +1,96 @@
+/* macOS-native overrides — scrollbars, selection, focus, inputs */
+
+/* Thin overlay scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Native text selection */
+::selection {
+  background: var(--accent-selection);
+}
+
+/* Disable web-style focus outlines — we use custom focus rings */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--border-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* Prevent text selection on UI elements */
+button,
+[role="tab"],
+[role="button"],
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Native-style inputs */
+input,
+textarea,
+select {
+  font-family: var(--font-sans);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--border-focus);
+}
+
+/* Remove spinner from number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+/* Placeholder styling */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-quaternary);
+}
+
+/* Disable pull-to-refresh and overscroll */
+html {
+  overscroll-behavior: none;
+}
+
+/* Smooth font rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Prevent drag on images and links */
+img,
+a {
+  -webkit-user-drag: none;
+}

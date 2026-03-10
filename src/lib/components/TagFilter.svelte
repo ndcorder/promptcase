@@ -26,7 +26,10 @@
 
 <div class="tag-filter">
   <div class="input-wrapper">
-    <span class="icon">#</span>
+    <svg class="search-icon" width="12" height="12" viewBox="0 0 12 12">
+      <circle cx="5" cy="5" r="3.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M7.5 7.5L10.5 10.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+    </svg>
     <input
       type="text"
       placeholder="Filter by tag..."
@@ -36,7 +39,11 @@
       onblur={() => setTimeout(() => (showSuggestions = false), 150)}
     />
     {#if filterValue}
-      <button class="clear-btn" onclick={clearFilter}>x</button>
+      <button class="clear-btn" onclick={clearFilter}>
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
     {/if}
   </div>
 
@@ -54,68 +61,77 @@
 <style>
   .tag-filter {
     position: relative;
-    padding: 8px;
+    padding: 0 var(--space-2) var(--space-2);
   }
   .input-wrapper {
     display: flex;
     align-items: center;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    padding: 0 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: 0 var(--space-2);
+    transition: border-color var(--transition-base);
   }
-  .icon {
-    color: #71717a;
-    font-size: 13px;
-    margin-right: 4px;
+  .input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--border-focus);
+  }
+  .search-icon {
+    color: var(--text-quaternary);
+    flex-shrink: 0;
+    margin-right: var(--space-1);
   }
   input {
     flex: 1;
     background: none;
     border: none;
-    color: #d4d4d8;
-    font-size: 13px;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
     padding: 6px 0;
     outline: none;
     font-family: inherit;
   }
-  input::placeholder {
-    color: #52525b;
-  }
   .clear-btn {
-    background: none;
-    border: none;
-    color: #71717a;
-    cursor: pointer;
-    padding: 0 4px;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-sm);
+    color: var(--text-quaternary);
+    transition: all var(--transition-fast);
+  }
+  .clear-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-primary);
   }
   .suggestions {
     position: absolute;
-    left: 8px;
-    right: 8px;
+    left: var(--space-2);
+    right: var(--space-2);
     top: 100%;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
     max-height: 200px;
     overflow-y: auto;
     z-index: 10;
+    box-shadow: var(--shadow-popover);
   }
   .suggestion {
     display: block;
     width: 100%;
-    padding: 6px 12px;
-    border: none;
-    background: none;
-    color: #a1a1aa;
-    font-size: 13px;
+    padding: var(--space-1) var(--space-3);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
     text-align: left;
-    cursor: pointer;
-    font-family: inherit;
+    border-radius: var(--radius-sm);
+    margin: 2px;
+    width: calc(100% - 4px);
+    transition: all var(--transition-fast);
   }
   .suggestion:hover {
-    background: #3f3f46;
-    color: #d4d4d8;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
   }
 </style>

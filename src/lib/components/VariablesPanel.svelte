@@ -47,59 +47,60 @@
 
 <style>
   .variables-panel {
-    padding: 12px;
-    border-top: 1px solid #27272a;
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-primary);
   }
   h3 {
-    margin: 0 0 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #71717a;
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
   }
   .variable {
-    margin-bottom: 10px;
-    padding: 8px;
-    background: #27272a;
-    border-radius: 6px;
+    margin-bottom: var(--space-2);
+    padding: var(--space-2);
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-secondary);
   }
   .var-header {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
+    gap: var(--space-1);
+    margin-bottom: var(--space-1);
   }
   .var-name {
-    font-family: monospace;
-    font-size: 13px;
-    color: #f59e0b;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    color: var(--color-variable);
   }
   .var-type {
     font-size: 10px;
-    color: #a78bfa;
-    background: #a78bfa20;
-    padding: 0 4px;
+    color: var(--color-include);
+    background: var(--color-include-subtle);
+    padding: 0 var(--space-1);
     border-radius: 2px;
   }
   .var-desc {
-    font-size: 12px;
-    color: #a1a1aa;
-    margin-bottom: 6px;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
   }
   .var-input {
     width: 100%;
-    padding: 4px 8px;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    border-radius: 4px;
-    color: #d4d4d8;
-    font-size: 13px;
-    font-family: monospace;
-    outline: none;
+    padding: var(--space-1) var(--space-2);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-family: var(--font-mono);
   }
   .var-input:focus {
-    border-color: #a78bfa;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--border-focus);
   }
   select.var-input {
     cursor: pointer;

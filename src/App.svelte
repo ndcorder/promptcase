@@ -123,8 +123,8 @@
     grid-template-rows: 1fr auto;
     height: 100vh;
     overflow: hidden;
-    background: #09090b;
-    color: #d4d4d8;
+    background: var(--bg-primary);
+    color: var(--text-primary);
   }
   .sidebar-panel {
     grid-row: 1;
@@ -157,11 +157,11 @@
   }
   .preview-split {
     width: 50%;
-    border-left: 1px solid #27272a;
+    border-left: 1px solid var(--border-primary);
   }
   .bottom-panel {
-    border-top: 1px solid #27272a;
-    background: #18181b;
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-secondary);
     overflow: hidden;
   }
   :global(footer.status-bar) {
@@ -180,21 +180,22 @@
   .empty-content h1 {
     font-size: 28px;
     font-weight: 300;
-    color: #3f3f46;
-    margin: 0 0 8px;
+    color: var(--text-quaternary);
+    margin: 0 0 var(--space-2);
+    letter-spacing: -0.02em;
   }
   .empty-content p {
-    color: #52525b;
-    font-size: 14px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
   }
   .empty-content kbd {
-    background: #27272a;
+    background: var(--bg-tertiary);
     padding: 2px 6px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 13px;
-    color: #a1a1aa;
-    border: 1px solid #3f3f46;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
   }
   .panel {
     flex-shrink: 0;

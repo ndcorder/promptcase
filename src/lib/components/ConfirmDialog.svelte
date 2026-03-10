@@ -48,7 +48,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #00000060;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     padding-top: 15vh;
@@ -56,50 +58,49 @@
   }
   .dialog {
     width: 400px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 20px 60px #00000060;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-xl);
     align-self: flex-start;
   }
   h3 {
-    margin: 0 0 8px;
-    font-size: 15px;
-    font-weight: 600;
-    color: #e4e4e7;
+    margin: 0 0 var(--space-2);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
   p {
-    margin: 0 0 16px;
-    font-size: 14px;
-    color: #a1a1aa;
+    margin: 0 0 var(--space-4);
+    font-size: var(--font-size-md);
+    color: var(--text-secondary);
   }
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--space-2);
   }
   .btn {
-    padding: 6px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-    border: none;
+    padding: var(--space-1) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
   }
   .cancel {
-    background: #3f3f46;
-    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
   }
   .cancel:hover {
-    background: #52525b;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
   }
   .confirm {
-    background: #ef4444;
+    background: var(--color-error);
     color: white;
   }
   .confirm:hover {
-    background: #dc2626;
+    background: #ff6961;
   }
 </style>

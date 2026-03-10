@@ -59,49 +59,50 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #18181b;
+    background: var(--bg-secondary);
   }
   .preview-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
-    border-bottom: 1px solid #27272a;
-    font-size: 12px;
-    color: #a1a1aa;
+    padding: var(--space-1) var(--space-3);
+    border-bottom: 1px solid var(--border-primary);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
   }
   .preview-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .header-btn {
-    background: none;
-    border: 1px solid #3f3f46;
-    color: #a1a1aa;
-    padding: 2px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    font-family: inherit;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    transition: all var(--transition-fast);
   }
   .header-btn:hover {
-    background: #27272a;
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-primary);
   }
   .preview-content {
     flex: 1;
     overflow: auto;
-    padding: 12px;
+    padding: var(--space-3);
   }
   pre {
     margin: 0;
     white-space: pre-wrap;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    color: #d4d4d8;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
     line-height: 1.6;
   }
   .loading {
-    color: #52525b;
+    color: var(--text-tertiary);
     font-style: italic;
   }
 </style>

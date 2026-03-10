@@ -12,7 +12,6 @@
 
   let { node, depth = 0, onFileSelect, onFileContext, selectedPath }: Props = $props();
 
-  // Default new folders to expanded
   $effect(() => {
     if (node.name && node.path) {
       expandedFolders.update((set) => {
@@ -37,19 +36,17 @@
       return new Set(set);
     });
   }
-
-  function getIcon(entry: PromptEntry): string {
-    return entry.frontmatter.type === "fragment" ? "F" : "P";
-  }
 </script>
 
 {#if node.name}
   <button
     class="folder-row"
-    style="padding-left: {depth * 16 + 4}px"
+    style="padding-left: {depth * 16 + 8}px"
     onclick={toggleExpand}
   >
-    <span class="folder-icon">{expanded ? "v" : ">"}</span>
+    <svg class="chevron" class:expanded width="8" height="8" viewBox="0 0 8 8">
+      <path d="M2 1l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     <span class="folder-name">{node.name}</span>
   </button>
 {/if}
@@ -69,13 +66,14 @@
     <button
       class="file-row"
       class:selected={selectedPath === file.path}
-      style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 4}px"
+      style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 8}px"
       onclick={() => onFileSelect(file.path)}
       oncontextmenu={(e) => { e.preventDefault(); onFileContext?.(file.path, e.clientX, e.clientY); }}
     >
-      <span class="file-icon" class:fragment={file.frontmatter.type === "fragment"}>
-        {getIcon(file)}
-      </span>
+      <svg class="file-icon" width="14" height="14" viewBox="0 0 16 16">
+        <path d="M4 1.5h5.5L13 5v9.5a1 1 0 01-1 1H4a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M9.5 1.5V5H13" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      </svg>
       <span class="file-name">{file.frontmatter.title || file.path.split("/").pop()}</span>
     </button>
   {/each}
@@ -86,50 +84,50 @@
   .file-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
     width: 100%;
-    padding: 4px 8px;
+    padding: 5px var(--space-2);
     border: none;
     background: none;
-    color: #d4d4d8;
-    font-size: 13px;
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
     cursor: pointer;
     text-align: left;
     font-family: inherit;
+    border-radius: var(--radius-sm);
+    margin: 0 var(--space-1);
+    width: calc(100% - var(--space-2));
+    transition: background var(--transition-fast);
   }
   .folder-row:hover,
   .file-row:hover {
-    background: #27272a;
+    background: rgba(255, 255, 255, 0.05);
   }
   .file-row.selected {
-    background: #3f3f46;
-    color: #f4f4f5;
+    background: var(--accent-subtle);
+    color: var(--text-primary);
   }
-  .folder-icon {
-    color: #71717a;
-    font-size: 10px;
-    width: 12px;
-    text-align: center;
+  .chevron {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+  }
+  .chevron.expanded {
+    transform: rotate(90deg);
   }
   .folder-name {
-    color: #a1a1aa;
-    font-weight: 500;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
   }
   .file-icon {
-    color: #60a5fa;
-    font-size: 11px;
-    font-weight: 600;
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 2px;
-    background: #60a5fa20;
+    color: var(--text-tertiary);
+    flex-shrink: 0;
   }
-  .file-icon.fragment {
-    color: #a78bfa;
-    background: #a78bfa20;
+  .file-row.selected .file-icon {
+    color: var(--accent);
   }
   .file-name {
     overflow: hidden;

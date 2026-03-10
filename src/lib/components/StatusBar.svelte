@@ -19,7 +19,7 @@
   <div class="left">
     {#if $activeFile}
       <span class="status-item">
-        {$activeFile.frontmatter.type === "fragment" ? "Fragment" : "Prompt"}
+        Prompt
       </span>
       <span class="status-item problems">
         {errorCount} errors, {warnCount} warnings
@@ -39,25 +39,25 @@
     align-items: center;
     justify-content: space-between;
     height: 24px;
-    padding: 0 12px;
-    background: #27272a;
-    border-top: 1px solid #3f3f46;
-    font-size: 12px;
-    color: #a1a1aa;
+    padding: 0 var(--space-3);
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border-primary);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
   }
   .left, .right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
   }
   .status-item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .tokens {
-    font-family: monospace;
-    font-size: 11px;
-    color: #71717a;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
   }
 </style>

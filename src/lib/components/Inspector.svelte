@@ -20,16 +20,17 @@
 <style>
   .inspector {
     height: 100%;
-    background: #18181b;
-    border-left: 1px solid #27272a;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-primary);
     overflow-y: auto;
+    padding-top: env(titlebar-area-height, 28px);
   }
   .empty {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #52525b;
-    font-size: 13px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-base);
   }
 </style>

@@ -30,36 +30,37 @@
     position: fixed;
     z-index: 200;
     min-width: 160px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    padding: 4px 0;
-    box-shadow: 0 8px 24px #00000060;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-1) 0;
+    box-shadow: var(--shadow-popover);
   }
   .menu-item {
     display: block;
-    width: 100%;
-    padding: 6px 12px;
-    background: none;
-    border: none;
-    color: #d4d4d8;
-    font-size: 13px;
+    width: calc(100% - var(--space-2));
+    margin: 0 var(--space-1);
+    padding: var(--space-1) var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
     text-align: left;
-    cursor: pointer;
-    font-family: inherit;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
   }
   .menu-item:hover {
-    background: #3f3f46;
+    background: var(--accent);
+    color: white;
   }
   .menu-item.danger {
-    color: #f87171;
+    color: var(--color-error);
   }
   .menu-item.danger:hover {
-    background: #f8717115;
+    background: var(--color-error);
+    color: white;
   }
   .separator {
     height: 1px;
-    background: #3f3f46;
-    margin: 4px 0;
+    background: var(--border-primary);
+    margin: var(--space-1) 0;
   }
 </style>

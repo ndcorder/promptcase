@@ -1,0 +1,85 @@
+:root {
+  /* Background layers — macOS Sonoma dark */
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252525;
+  --bg-tertiary: #2d2d2d;
+  --bg-quaternary: #363636;
+
+  /* Sidebar with translucency */
+  --sidebar-bg: rgba(30, 30, 30, 0.80);
+  --sidebar-blur: 20px;
+
+  /* Text — uses alpha for natural layering on any surface */
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(255, 255, 255, 0.55);
+  --text-tertiary: rgba(255, 255, 255, 0.35);
+  --text-quaternary: rgba(255, 255, 255, 0.20);
+
+  /* Accent — macOS system blue */
+  --accent: #0a84ff;
+  --accent-hover: #409cff;
+  --accent-subtle: rgba(10, 132, 255, 0.15);
+  --accent-selection: rgba(10, 132, 255, 0.3);
+
+  /* Borders — barely visible, like native separators */
+  --border-primary: rgba(255, 255, 255, 0.10);
+  --border-secondary: rgba(255, 255, 255, 0.06);
+  --border-focus: rgba(10, 132, 255, 0.5);
+
+  /* Semantic colors — macOS system palette */
+  --color-error: #ff453a;
+  --color-error-subtle: rgba(255, 69, 58, 0.15);
+  --color-warning: #ff9f0a;
+  --color-warning-subtle: rgba(255, 159, 10, 0.15);
+  --color-success: #30d158;
+  --color-success-subtle: rgba(48, 209, 88, 0.15);
+  --color-info: #0a84ff;
+
+  /* Template syntax — semantic highlights */
+  --color-variable: #ff9f0a;
+  --color-variable-subtle: rgba(255, 159, 10, 0.10);
+  --color-include: #bf5af2;
+  --color-include-subtle: rgba(191, 90, 242, 0.10);
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --font-mono: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 13px;
+  --font-size-md: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 17px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --letter-spacing-tight: -0.008em;
+
+  /* Spacing — 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --shadow-popover: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+  /* Transitions — smooth, not sluggish */
+  --transition-fast: 100ms ease-out;
+  --transition-base: 150ms ease-out;
+  --transition-slow: 250ms ease-out;
+}

@@ -74,13 +74,18 @@
 {#if visible}
   <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onClose(); }} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label="Command palette" tabindex="-1">
     <div class="palette">
-      <input
-        bind:this={inputEl}
-        type="text"
-        placeholder="Type a command..."
-        bind:value={query}
-        onkeydown={handleKeydown}
-      />
+      <div class="palette-input-wrapper">
+        <svg class="cmd-icon" width="14" height="14" viewBox="0 0 14 14">
+          <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <input
+          bind:this={inputEl}
+          type="text"
+          placeholder="Type a command..."
+          bind:value={query}
+          onkeydown={handleKeydown}
+        />
+      </div>
       <div class="commands">
         {#each filteredCommands as cmd, i}
           <button
@@ -90,7 +95,7 @@
           >
             <span class="cmd-label">{cmd.label}</span>
             {#if cmd.shortcut}
-              <span class="cmd-shortcut">{cmd.shortcut}</span>
+              <kbd class="cmd-shortcut">{cmd.shortcut}</kbd>
             {/if}
           </button>
         {/each}
@@ -106,7 +111,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #00000060;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     padding-top: 15vh;
@@ -115,55 +122,65 @@
   .palette {
     width: 500px;
     max-height: 360px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: 0 20px 60px #00000060;
+    box-shadow: var(--shadow-xl);
     align-self: flex-start;
   }
+  .palette-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 0 var(--space-4);
+    border-bottom: 1px solid var(--border-primary);
+  }
+  .cmd-icon {
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+  }
   input {
-    width: 100%;
-    padding: 12px 16px;
+    flex: 1;
+    padding: var(--space-3) 0;
     background: none;
     border: none;
-    border-bottom: 1px solid #3f3f46;
-    color: #d4d4d8;
-    font-size: 15px;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
     outline: none;
     font-family: inherit;
-  }
-  input::placeholder {
-    color: #52525b;
   }
   .commands {
     max-height: 300px;
     overflow-y: auto;
+    padding: var(--space-1);
   }
   .command {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    color: #d4d4d8;
-    font-size: 14px;
-    cursor: pointer;
+    padding: var(--space-2) var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
     text-align: left;
-    font-family: inherit;
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
   }
   .command:hover,
   .command.selected {
-    background: #3f3f46;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .command.selected {
+    background: var(--accent-subtle);
   }
   .cmd-shortcut {
-    font-size: 12px;
-    color: #71717a;
-    font-family: monospace;
-    background: #18181b;
-    padding: 2px 6px;
-    border-radius: 3px;
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    background: var(--bg-primary);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary);
   }
 </style>

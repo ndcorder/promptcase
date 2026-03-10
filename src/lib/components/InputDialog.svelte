@@ -26,7 +26,6 @@
   $effect(() => {
     if (visible && inputEl) {
       value = defaultValue;
-      // Tick delay so the input is mounted
       requestAnimationFrame(() => {
         inputEl.focus();
         inputEl.select();
@@ -61,7 +60,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: #00000060;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     justify-content: center;
     padding-top: 15vh;
@@ -69,68 +70,63 @@
   }
   .dialog {
     width: 400px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 20px 60px #00000060;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-xl);
     align-self: flex-start;
   }
   h3 {
-    margin: 0 0 12px;
-    font-size: 15px;
-    font-weight: 600;
-    color: #e4e4e7;
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
   input {
     width: 100%;
-    padding: 8px 12px;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    border-radius: 6px;
-    color: #d4d4d8;
-    font-size: 14px;
-    outline: none;
-    font-family: inherit;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-md);
     box-sizing: border-box;
   }
   input:focus {
-    border-color: #a78bfa;
-  }
-  input::placeholder {
-    color: #52525b;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--border-focus);
   }
   .actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
-    margin-top: 16px;
+    gap: var(--space-2);
+    margin-top: var(--space-4);
   }
   .btn {
-    padding: 6px 16px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
-    border: none;
+    padding: var(--space-1) var(--space-4);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    transition: all var(--transition-base);
   }
   .cancel {
-    background: #3f3f46;
-    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
   }
   .cancel:hover {
-    background: #52525b;
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-primary);
   }
   .confirm {
-    background: #a78bfa;
-    color: #09090b;
+    background: var(--accent);
+    color: white;
   }
   .confirm:hover {
-    background: #8b5cf6;
+    background: var(--accent-hover);
   }
   .confirm:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: default;
   }
 </style>

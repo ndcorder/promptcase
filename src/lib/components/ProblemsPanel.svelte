@@ -47,20 +47,20 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
-    border-bottom: 1px solid #27272a;
-    font-size: 12px;
-    font-weight: 600;
-    color: #a1a1aa;
+    padding: var(--space-1) var(--space-3);
+    border-bottom: 1px solid var(--border-primary);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
   }
   .count {
-    font-weight: 400;
-    color: #71717a;
+    font-weight: var(--font-weight-regular);
+    color: var(--text-tertiary);
   }
   .no-problems {
-    padding: 12px;
-    color: #52525b;
-    font-size: 12px;
+    padding: var(--space-3);
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
   }
   .problems-list {
     flex: 1;
@@ -69,13 +69,14 @@
   .problem {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 12px;
-    font-size: 12px;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-sm);
     cursor: pointer;
+    transition: background var(--transition-fast);
   }
   .problem:hover {
-    background: #27272a;
+    background: rgba(255, 255, 255, 0.04);
   }
   .severity {
     width: 16px;
@@ -88,27 +89,27 @@
     font-weight: 700;
   }
   .problem.error .severity {
-    background: #ef444430;
-    color: #ef4444;
+    background: var(--color-error-subtle);
+    color: var(--color-error);
   }
   .problem.warning .severity {
-    background: #f59e0b30;
-    color: #f59e0b;
+    background: var(--color-warning-subtle);
+    color: var(--color-warning);
   }
   .message {
     flex: 1;
-    color: #d4d4d8;
+    color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .location {
-    color: #71717a;
-    font-family: monospace;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
   }
   .rule {
-    color: #52525b;
-    font-family: monospace;
-    font-size: 11px;
+    color: var(--text-quaternary);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
   }
 </style>

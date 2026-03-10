@@ -1,17 +1,17 @@
 export const templateHighlightingStyles = `
   .cm-template-variable {
-    color: #f59e0b;
-    background: #f59e0b15;
+    color: #ff9f0a;
+    background: rgba(255, 159, 10, 0.10);
     border-radius: 2px;
     padding: 0 1px;
   }
   .cm-template-include {
-    color: #8b5cf6;
-    background: #8b5cf615;
+    color: #bf5af2;
+    background: rgba(191, 90, 242, 0.10);
     border-radius: 2px;
     padding: 0 1px;
   }
   .cm-frontmatter {
-    color: #71717a;
+    color: rgba(255, 255, 255, 0.30);
   }
 `;

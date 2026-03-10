@@ -8,7 +8,9 @@
       <div class="toast toast-{toast.type}">
         <span class="toast-message">{toast.message}</span>
         <button class="toast-close" onclick={() => removeToast(toast.id)}>
-          &times;
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
         </button>
       </div>
     {/each}
@@ -19,37 +21,38 @@
   .toast-container {
     position: fixed;
     bottom: 40px;
-    right: 16px;
+    right: var(--space-4);
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
     max-width: 360px;
   }
 
   .toast {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border-radius: 6px;
-    background: #27272a;
-    color: #d4d4d8;
-    font-size: 13px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-lg);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    box-shadow: var(--shadow-popover);
+    border: 1px solid var(--border-primary);
     animation: toast-in 0.2s ease-out;
   }
 
   .toast-error {
-    border-left: 3px solid #f87171;
+    border-left: 3px solid var(--color-error);
   }
 
   .toast-success {
-    border-left: 3px solid #34d399;
+    border-left: 3px solid var(--color-success);
   }
 
   .toast-info {
-    border-left: 3px solid #60a5fa;
+    border-left: 3px solid var(--color-info);
   }
 
   .toast-message {
@@ -57,17 +60,19 @@
   }
 
   .toast-close {
-    background: none;
-    border: none;
-    color: #71717a;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 0 2px;
-    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    transition: all var(--transition-fast);
   }
 
   .toast-close:hover {
-    color: #d4d4d8;
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-primary);
   }
 
   @keyframes toast-in {

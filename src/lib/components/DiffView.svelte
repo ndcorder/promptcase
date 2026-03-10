@@ -41,38 +41,38 @@
   .diff-view {
     height: 100%;
     overflow: auto;
-    font-family: monospace;
-    font-size: 13px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-base);
   }
   .empty {
-    padding: 16px;
-    color: #52525b;
+    padding: var(--space-4);
+    color: var(--text-tertiary);
     text-align: center;
-    font-family: sans-serif;
+    font-family: var(--font-sans);
   }
   .diff-content {
-    padding: 8px 0;
+    padding: var(--space-2) 0;
   }
   .hunk-header {
-    padding: 4px 12px;
-    color: #a78bfa;
-    background: #a78bfa10;
+    padding: var(--space-1) var(--space-3);
+    color: var(--color-include);
+    background: var(--color-include-subtle);
   }
   .diff-line {
     display: flex;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     line-height: 1.6;
   }
   .diff-line.add {
-    background: #22c55e10;
-    color: #4ade80;
+    background: var(--color-success-subtle);
+    color: var(--color-success);
   }
   .diff-line.remove {
-    background: #ef444410;
-    color: #f87171;
+    background: var(--color-error-subtle);
+    color: var(--color-error);
   }
   .diff-line.context {
-    color: #71717a;
+    color: var(--text-tertiary);
   }
   .diff-marker {
     width: 16px;

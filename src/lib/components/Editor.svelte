@@ -6,7 +6,7 @@
   let view: import("@codemirror/view").EditorView | null = null;
   let debounceTimer: ReturnType<typeof setTimeout>;
   let currentPath: string | null = null;
-  let loading = true;
+  let loading = $state(true);
 
   // Lazy-loaded modules
   let cmState: typeof import("@codemirror/state");
@@ -89,10 +89,16 @@
     await loadCodeMirror();
     loading = false;
 
+    const initialContent = $editorContent || "";
     view = new cmView.EditorView({
-      state: createState(""),
+      state: createState(initialContent),
       parent: editorContainer,
     });
+
+    const file = $activeFile;
+    if (file) {
+      currentPath = file.path;
+    }
   });
 
   onDestroy(() => {
@@ -100,7 +106,6 @@
     clearTimeout(debounceTimer);
   });
 
-  // React to file/tab changes — restore buffered content if available
   $effect(() => {
     const file = $activeFile;
     const content = $editorContent;
@@ -140,7 +145,7 @@
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    color: #71717a;
-    font-size: 14px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
   }
 </style>
