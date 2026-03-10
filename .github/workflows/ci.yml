@@ -20,27 +20,35 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            sidecar/package-lock.json
 
-      - name: Install root dependencies
+      - name: Install dependencies
         run: npm ci
-
-      - name: Install sidecar dependencies
-        run: npm ci --prefix sidecar
 
       - name: Typecheck frontend
         run: npx svelte-check --tsconfig ./tsconfig.json
 
-      - name: Typecheck sidecar
-        run: cd sidecar && npx tsc --noEmit
-
       - name: Test frontend
         run: npx vitest run
 
-      - name: Test sidecar
-        run: cd sidecar && npx vitest run
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      - name: Test Rust backend
+        run: cd src-tauri && cargo test
 
   build:
     needs: lint-and-test
@@ -62,9 +70,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            sidecar/package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -84,18 +89,8 @@ jobs:
             patchelf \
             libssl-dev
 
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install root dependencies
+      - name: Install dependencies
         run: npm ci
-
-      - name: Install sidecar dependencies
-        run: npm ci --prefix sidecar
-
-      - name: Build sidecar binary
-        run: npm run sidecar:build:binary
 
       - name: Build frontend
         run: npm run build

@@ -36,24 +36,19 @@ describe("tauri.conf.json", () => {
     expect(csp).not.toContain("'unsafe-eval'");
   });
 
-  it("shell plugin has no scope in config (belongs in capabilities)", () => {
-    const shell = config.plugins?.shell;
-    expect(shell).toBeDefined();
-    expect(shell.scope).toBeUndefined();
+  it("does not bundle external binaries", () => {
+    expect(config.bundle?.externalBin).toBeUndefined();
   });
 
-  it("capabilities restrict sidecar args", () => {
+  it("capabilities only grant core:default", () => {
     const capsPath = resolve(dirname(__filename2), "../src-tauri/capabilities/default.json");
     const caps = JSON.parse(readFileSync(capsPath, "utf-8"));
-    for (const perm of caps.permissions) {
-      if (typeof perm === "object" && perm.allow) {
-        for (const entry of perm.allow) {
-          if (entry.sidecar) {
-            expect(entry.args).not.toBe(true);
-          }
-        }
-      }
-    }
+    expect(caps.permissions).toContain("core:default");
+    // No shell permissions should exist
+    const shellPerms = caps.permissions.filter((p: unknown) =>
+      typeof p === "string" ? p.includes("shell") : JSON.stringify(p).includes("shell")
+    );
+    expect(shellPerms).toHaveLength(0);
   });
 
   it("windows have required properties", () => {

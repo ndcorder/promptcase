@@ -7,22 +7,33 @@
   import { folderTree, loadFiles, promptEntries } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
-  import { api } from "../ipc";
+  import { api, isTauri } from "../ipc";
+
+  async function handleDragStart(e: MouseEvent) {
+    if (!isTauri()) return;
+    if (e.buttons !== 1) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, input")) return;
+    if (e.detail === 2) {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      getCurrentWindow().toggleMaximize();
+    } else {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      getCurrentWindow().startDragging();
+    }
+  }
   import { get } from "svelte/store";
 
   let creating = $state(false);
 
-  // Input dialog state (create / rename)
   let dialogVisible = $state(false);
   let dialogTitle = $state("");
   let dialogDefault = $state("");
-  let dialogMode: "create-prompt" | "create-fragment" | "rename" = "create-prompt";
+  let dialogMode: "create" | "rename" = "create";
 
-  // Confirm dialog state (delete)
   let deleteConfirmVisible = $state(false);
   let deleteTargetPath = $state("");
 
-  // Context menu state
   let contextMenu = $state<{ path: string; x: number; y: number } | null>(null);
 
   function handleFileSelect(path: string) {
@@ -34,16 +45,9 @@
   }
 
   function handleNewPrompt() {
-    dialogMode = "create-prompt";
+    dialogMode = "create";
     dialogTitle = "New Prompt";
     dialogDefault = "New Prompt";
-    dialogVisible = true;
-  }
-
-  function handleNewFragment() {
-    dialogMode = "create-fragment";
-    dialogTitle = "New Fragment";
-    dialogDefault = "New Fragment";
     dialogVisible = true;
   }
 
@@ -53,7 +57,7 @@
     dialogMode = "rename";
     dialogTitle = "Rename";
     dialogDefault = entry?.frontmatter.title || path.split("/").pop()?.replace(/\.md$/, "") || "";
-    deleteTargetPath = path; // reuse for rename source
+    deleteTargetPath = path;
     dialogVisible = true;
   }
 
@@ -63,7 +67,7 @@
       const baseName = path.replace(/\.md$/, "");
       const newPath = baseName + "-copy.md";
       const newTitle = (file.frontmatter.title || "Untitled") + " (Copy)";
-      const created = await api.createFile(newPath, newTitle, file.frontmatter.type);
+      const created = await api.createFile(newPath, newTitle, "prompt");
       await api.writeFile(created.path, undefined, file.body);
       await loadFiles();
       openFile(created.path);
@@ -104,10 +108,8 @@
         await loadFiles();
         openFile(newPath);
       } else {
-        const isFragment = dialogMode === "create-fragment";
         const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-        const fileName = isFragment ? "fragments/" + slug : slug;
-        const file = await api.createFile(fileName, name, isFragment ? "fragment" : "prompt");
+        const file = await api.createFile(slug, name, "prompt");
         await loadFiles();
         openFile(file.path);
       }
@@ -124,11 +126,15 @@
 </script>
 
 <aside class="sidebar">
-  <div class="sidebar-header">
-    <h2>Promptcase</h2>
+  <div class="sidebar-header" data-tauri-drag-region onmousedown={handleDragStart}>
+    <h2 data-tauri-drag-region>Promptcase</h2>
     <div class="header-actions">
-      <button class="action-btn" onclick={handleNewPrompt} title="New Prompt">+ Prompt</button>
-      <button class="action-btn" onclick={handleNewFragment} title="New Fragment">+ Fragment</button>
+      <button class="action-btn" onclick={handleNewPrompt} title="New Prompt">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        New Prompt
+      </button>
     </div>
   </div>
 
@@ -186,70 +192,77 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #18181b;
-    border-right: 1px solid #27272a;
+    background: var(--sidebar-bg);
+    backdrop-filter: blur(var(--sidebar-blur));
+    -webkit-backdrop-filter: blur(var(--sidebar-blur));
+    border-right: 1px solid var(--border-primary);
     overflow: hidden;
   }
   .sidebar-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid #27272a;
+    padding: 52px var(--space-4) var(--space-3);
   }
   .sidebar-header h2 {
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #e4e4e7;
-    letter-spacing: 0.5px;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
   .header-actions {
     display: flex;
-    gap: 4px;
-    margin-top: 8px;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
   }
   .action-btn {
     flex: 1;
-    padding: 4px 8px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    border-radius: 4px;
-    color: #a1a1aa;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-base);
   }
   .action-btn:hover {
-    background: #3f3f46;
-    color: #d4d4d8;
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-primary);
+  }
+  .action-btn:active {
+    background: rgba(255, 255, 255, 0.04);
   }
   .tree-container {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: var(--space-1) 0;
   }
   .empty-tree {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 16px;
-    gap: 12px;
+    padding: var(--space-6) var(--space-4);
+    gap: var(--space-3);
   }
   .empty-tree p {
     margin: 0;
-    color: #52525b;
-    font-size: 13px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-base);
   }
   .create-btn {
-    padding: 6px 16px;
-    background: #a78bfa;
+    padding: var(--space-1) var(--space-4);
+    background: var(--accent);
     border: none;
-    border-radius: 6px;
-    color: #09090b;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    transition: background var(--transition-base);
   }
   .create-btn:hover {
-    background: #8b5cf6;
+    background: var(--accent-hover);
   }
 </style>

@@ -15,7 +15,7 @@
   function isStarred(commit: CommitEntry): boolean {
     const file = $activeFile;
     if (!file) return false;
-    return file.frontmatter.starred_versions.some(
+    return file.frontmatter.starredVersions.some(
       (s) => s.commit === commit.hash,
     );
   }
@@ -23,7 +23,7 @@
   function getStarLabel(commit: CommitEntry): string {
     const file = $activeFile;
     if (!file) return "";
-    const star = file.frontmatter.starred_versions.find(
+    const star = file.frontmatter.starredVersions.find(
       (s) => s.commit === commit.hash,
     );
     return star?.label || "";
@@ -57,20 +57,20 @@
 
 <style>
   .history-panel {
-    padding: 12px;
-    border-top: 1px solid #27272a;
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-primary);
   }
   h3 {
-    margin: 0 0 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #71717a;
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
   }
   .empty {
-    color: #52525b;
-    font-size: 12px;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-sm);
     font-style: italic;
   }
   .history-list {
@@ -81,51 +81,48 @@
   .history-entry {
     display: block;
     width: 100%;
-    padding: 8px;
-    background: none;
-    border: none;
-    border-radius: 4px;
+    padding: var(--space-2);
+    border-radius: var(--radius-sm);
     text-align: left;
-    cursor: pointer;
-    color: #d4d4d8;
-    font-family: inherit;
+    color: var(--text-primary);
+    transition: background var(--transition-fast);
   }
   .history-entry:hover {
-    background: #27272a;
+    background: rgba(255, 255, 255, 0.04);
   }
   .history-entry.starred {
-    border-left: 2px solid #f59e0b;
-    padding-left: 6px;
+    border-left: 2px solid var(--color-warning);
+    padding-left: var(--space-2);
   }
   .entry-header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-1);
     margin-bottom: 2px;
   }
   .star {
-    color: #f59e0b;
-    font-size: 14px;
+    color: var(--color-warning);
+    font-size: var(--font-size-md);
   }
   .date {
-    font-size: 12px;
-    color: #a1a1aa;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
   .hash {
-    font-family: monospace;
-    font-size: 11px;
-    color: #52525b;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    color: var(--text-quaternary);
   }
   .message {
-    font-size: 12px;
-    color: #71717a;
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .star-label {
-    font-size: 11px;
-    color: #f59e0b;
+    font-size: var(--font-size-xs);
+    color: var(--color-warning);
     margin-top: 2px;
     font-style: italic;
   }

@@ -3,9 +3,9 @@ import { describe, it, expect } from "vitest";
 import { api } from "../../src/lib/ipc";
 
 /**
- * Integration tests for the mock RPC layer.
- * These exercise the full api -> rpcCall -> mockRpcCall path
- * to verify the IPC protocol contract that the sidecar must satisfy.
+ * Integration tests for the IPC layer.
+ * These exercise the full api -> call -> mockCall path
+ * to verify the IPC protocol contract that the Rust backend must satisfy.
  */
 
 describe("file.create", () => {
@@ -159,7 +159,173 @@ describe("other RPC methods", () => {
   it("config.get returns valid config shape", async () => {
     const config = await api.getConfig();
     expect(config.version).toBe(1);
-    expect(config.token_count_models).toContain("gpt-4o");
-    expect(typeof config.auto_commit).toBe("boolean");
+    expect(config.tokenCountModels).toContain("gpt-4o");
+    expect(typeof config.autoCommit).toBe("boolean");
+  });
+});
+
+// === New tests below ===
+
+describe("file edge cases", () => {
+  it("readFile returns undefined for nonexistent path", async () => {
+    const result = await api.readFile("nonexistent/path/file.md");
+    expect(result).toBeUndefined();
+  });
+
+  it("writeFile to nonexistent file returns ok (no-op in mock)", async () => {
+    const result = await api.writeFile("does-not-exist.md", { tags: ["x"] });
+    expect(result.ok).toBe(true);
+  });
+
+  it("deleteFile for nonexistent file returns ok", async () => {
+    const result = await api.deleteFile("never-created.md");
+    expect(result.ok).toBe(true);
+  });
+
+  it("moveFile preserves frontmatter", async () => {
+    await api.createFile("move-fm.md", "FM Test");
+    await api.writeFile("move-fm.md", { tags: ["keep-me"] }, "Body kept");
+    await api.moveFile("move-fm.md", "moved-fm.md");
+
+    const moved = await api.readFile("moved-fm.md");
+    expect(moved).toBeTruthy();
+    expect(moved.frontmatter.title).toBe("FM Test");
+    expect(moved.frontmatter.tags).toEqual(["keep-me"]);
+    expect(moved.body).toBe("Body kept");
+    await api.deleteFile("moved-fm.md");
+  });
+
+  it("createFile with fragment type", async () => {
+    const file = await api.createFile("frag.md", "My Fragment", "fragment");
+    expect(file.frontmatter.type).toBe("fragment");
+    expect(file.frontmatter.title).toBe("My Fragment");
+    expect(file.frontmatter.tags).toEqual([]);
+    await api.deleteFile("frag.md");
+  });
+
+  it("listFiles returns empty when no files exist", async () => {
+    // Delete all files first
+    const files = await api.listFiles();
+    for (const f of files) {
+      await api.deleteFile(f.path);
+    }
+    const empty = await api.listFiles();
+    expect(empty).toEqual([]);
+  });
+});
+
+describe("git operations", () => {
+  it("gitLog always returns empty array in mock", async () => {
+    const log = await api.gitLog("any-file.md", 10);
+    expect(log).toEqual([]);
+  });
+
+  it("gitStatus returns initialized=true", async () => {
+    const status = await api.gitStatus();
+    expect(status.initialized).toBe(true);
+    expect(status.repoPath).toBe("~/prompts");
+  });
+
+  it("gitRestore returns null in mock", async () => {
+    const result = await api.gitRestore("some-file.md", "abc123");
+    expect(result).toBeNull();
+  });
+
+  it("gitDiff returns empty hunks", async () => {
+    const diff = await api.gitDiff("file.md", "aaa", "bbb");
+    expect(diff.hunks).toEqual([]);
+  });
+});
+
+describe("template operations", () => {
+  it("resolveTemplate returns file body for existing file", async () => {
+    await api.createFile("resolve-test.md", "Resolve");
+    await api.writeFile("resolve-test.md", undefined, "Hello {{name}}");
+
+    const resolved = await api.resolveTemplate("resolve-test.md", { name: "World" });
+    expect(resolved.text).toBe("Hello {{name}}");
+    expect(resolved.variables).toEqual({});
+    expect(resolved.unresolvedVariables).toEqual([]);
+    expect(resolved.includedFragments).toEqual([]);
+    await api.deleteFile("resolve-test.md");
+  });
+
+  it("lintFile returns empty array in mock", async () => {
+    const result = await api.lintFile("any-file.md");
+    expect(result).toEqual([]);
+  });
+
+  it("lintAll returns empty object in mock", async () => {
+    const result = await api.lintAll();
+    expect(result).toEqual({});
+  });
+
+  it("getVariables returns empty array in mock", async () => {
+    const result = await api.getVariables("any-file.md");
+    expect(result).toEqual([]);
+  });
+});
+
+describe("search operations", () => {
+  it("search returns empty array", async () => {
+    const results = await api.search("nonexistent query");
+    expect(results).toEqual([]);
+  });
+
+  it("reindex returns ok", async () => {
+    const result = await api.reindex();
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("config", () => {
+  it("getConfig returns all expected fields", async () => {
+    const config = await api.getConfig();
+    expect(config).toHaveProperty("version");
+    expect(config).toHaveProperty("defaultModel");
+    expect(config).toHaveProperty("autoCommit");
+    expect(config).toHaveProperty("commitPrefix");
+    expect(config).toHaveProperty("tokenCountModels");
+    expect(config).toHaveProperty("lintRules");
+  });
+
+  it("getConfig has correct default values", async () => {
+    const config = await api.getConfig();
+    expect(config.version).toBe(1);
+    expect(config.defaultModel).toBe("claude-sonnet-4");
+    expect(config.autoCommit).toBe(true);
+    expect(config.commitPrefix).toBe("[promptcase]");
+    expect(config.tokenCountModels).toEqual(["claude-sonnet-4", "gpt-4o"]);
+    expect(config.lintRules).toEqual({});
+  });
+
+  it("getConfig has camelCase field names", async () => {
+    const config = await api.getConfig();
+    expect(config.defaultModel).toBeDefined();
+    expect(config.autoCommit).toBeDefined();
+    expect(config.commitPrefix).toBeDefined();
+    expect(config.tokenCountModels).toBeDefined();
+    expect(config.lintRules).toBeDefined();
+  });
+});
+
+describe("token counting edge cases", () => {
+  it("countTokens for empty string returns 0", async () => {
+    const count = await api.countTokens("", "gpt-4o");
+    expect(count).toBe(0);
+  });
+
+  it("countTokensResolved uses file body length", async () => {
+    await api.createFile("token-test.md", "Token Test");
+    await api.writeFile("token-test.md", undefined, "1234567890123456"); // 16 chars => ceil(16/4) = 4
+
+    const count = await api.countTokensResolved("token-test.md", "gpt-4o");
+    expect(count).toBe(4);
+    await api.deleteFile("token-test.md");
+  });
+
+  it("countTokensResolved for nonexistent file returns 0", async () => {
+    const count = await api.countTokensResolved("no-such-file.md", "gpt-4o");
+    expect(count).toBe(0);
   });
 });

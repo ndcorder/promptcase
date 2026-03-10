@@ -15,14 +15,10 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "sidecar:build": "npm --prefix sidecar run build",
-    "sidecar:build:binary": "npm --prefix sidecar run build:binary",
-    "sidecar:build:all": "npm --prefix sidecar run build:binary:all",
-    "sidecar:dev": "npm --prefix sidecar run dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:sidecar": "npm --prefix sidecar run test",
-    "test:all": "npm run test && npm run test:sidecar"
+    "test:rust": "cd src-tauri && cargo test",
+    "test:all": "npm run test && npm run test:rust"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.18.0",
@@ -36,7 +32,6 @@
     "@codemirror/view": "^6.35.0",
     "@lezer/highlight": "^1.2.0",
     "@tauri-apps/api": "^2.2.0",
-    "@tauri-apps/plugin-shell": "^2.2.0",
     "codemirror": "^6.0.0",
     "svelte-spa-router": "^4.0.1"
   },

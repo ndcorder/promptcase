@@ -27,12 +27,6 @@
   <div class="metadata-panel">
     <h3>Metadata</h3>
     <div class="field">
-      <span class="field-label">Type</span>
-      <span class="value type-badge" class:fragment={$activeFile.frontmatter.type === "fragment"}>
-        {$activeFile.frontmatter.type}
-      </span>
-    </div>
-    <div class="field">
       <span class="field-label">ID</span>
       <span class="value mono">{$activeFile.frontmatter.id}</span>
     </div>
@@ -40,7 +34,12 @@
       <span class="field-label">Tags</span>
       <div class="tags">
         {#each $activeFile.frontmatter.tags as tag}
-          <button class="tag" onclick={() => removeTag(tag)}>#{tag} <span class="tag-x">x</span></button>
+          <button class="tag" onclick={() => removeTag(tag)}>
+            #{tag}
+            <svg class="tag-x" width="8" height="8" viewBox="0 0 8 8">
+              <path d="M1.5 1.5l5 5M6.5 1.5l-5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </button>
         {/each}
       </div>
       <div class="tag-input-row">
@@ -53,11 +52,11 @@
         />
       </div>
     </div>
-    {#if $activeFile.frontmatter.model_targets?.length}
+    {#if $activeFile.frontmatter.modelTargets?.length}
       <div class="field">
         <span class="field-label">Models</span>
         <div class="models">
-          {#each $activeFile.frontmatter.model_targets as model}
+          {#each $activeFile.frontmatter.modelTargets as model}
             <span class="model">{model}</span>
           {/each}
         </div>
@@ -76,104 +75,85 @@
 
 <style>
   .metadata-panel {
-    padding: 12px;
+    padding: var(--space-3);
   }
   h3 {
-    margin: 0 0 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: #71717a;
+    margin: 0 0 var(--space-3);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
   }
   .field {
-    margin-bottom: 8px;
+    margin-bottom: var(--space-2);
   }
   .field-label {
     display: block;
-    font-size: 11px;
-    color: #52525b;
+    font-size: var(--font-size-xs);
+    color: var(--text-quaternary);
     margin-bottom: 2px;
   }
   .value {
-    font-size: 13px;
-    color: #d4d4d8;
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
   }
   .mono {
-    font-family: monospace;
-    font-size: 12px;
-    color: #a1a1aa;
-  }
-  .type-badge {
-    display: inline-block;
-    padding: 1px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    background: #60a5fa20;
-    color: #60a5fa;
-  }
-  .type-badge.fragment {
-    background: #a78bfa20;
-    color: #a78bfa;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
   }
   .tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .tag {
-    font-size: 12px;
-    color: #a78bfa;
-    background: #a78bfa15;
-    padding: 1px 6px;
-    border-radius: 3px;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
+    font-size: var(--font-size-sm);
+    color: var(--accent);
+    background: var(--accent-subtle);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: var(--space-1);
+    transition: background var(--transition-fast);
   }
   .tag:hover {
-    background: #a78bfa25;
+    background: var(--accent-selection);
   }
   .tag-x {
-    font-size: 10px;
-    color: #71717a;
+    color: var(--text-quaternary);
   }
   .tag:hover .tag-x {
-    color: #f87171;
+    color: var(--color-error);
   }
   .tag-input-row {
-    margin-top: 4px;
+    margin-top: var(--space-1);
   }
   .tag-input {
     width: 100%;
-    padding: 3px 6px;
-    background: #18181b;
-    border: 1px solid #3f3f46;
-    border-radius: 3px;
-    color: #d4d4d8;
-    font-size: 12px;
-    outline: none;
-    font-family: inherit;
+    padding: 4px var(--space-2);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
   }
   .tag-input:focus {
-    border-color: #a78bfa;
-  }
-  .tag-input::placeholder {
-    color: #52525b;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--border-focus);
   }
   .models {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--space-1);
   }
   .model {
-    font-size: 12px;
-    color: #34d399;
-    background: #34d39915;
-    padding: 1px 6px;
-    border-radius: 3px;
+    font-size: var(--font-size-sm);
+    color: var(--color-success);
+    background: var(--color-success-subtle);
+    padding: 1px var(--space-2);
+    border-radius: var(--radius-sm);
   }
 </style>

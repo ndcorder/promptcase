@@ -11,112 +11,16 @@ import type {
   VariableDefinition,
 } from "./types";
 
-let requestId = 0;
-
-type RpcResponse = {
-  jsonrpc: "2.0";
-  id: number;
-  result?: unknown;
-  error?: { code: number; message: string };
-};
-
-type RpcCallback = (response: RpcResponse) => void;
-const pendingRequests = new Map<number, RpcCallback>();
-
-let sidecarProcess: { write: (data: string) => void } | null = null;
-let outputBuffer = "";
-
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI__" in window;
 }
 
-async function initSidecar(): Promise<void> {
-  if (sidecarProcess) return;
-
+async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (isTauri()) {
-    const { Command } = await import("@tauri-apps/plugin-shell");
-    const cmd = Command.sidecar("binaries/promptcase-sidecar");
-    const child = await cmd.spawn();
-
-    cmd.stdout.on("data", (data: string) => {
-      outputBuffer += data;
-      const lines = outputBuffer.split("\n");
-      outputBuffer = lines.pop() || "";
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const response = JSON.parse(line) as RpcResponse;
-          if ("id" in response && response.id != null) {
-            const callback = pendingRequests.get(response.id);
-            if (callback) {
-              pendingRequests.delete(response.id);
-              callback(response);
-            }
-          }
-        } catch {
-          // ignore non-JSON lines
-        }
-      }
-    });
-
-    cmd.stderr.on("data", (data: string) => {
-      console.error("[sidecar stderr]", data);
-    });
-
-    cmd.on("close", () => {
-      sidecarProcess = null;
-      for (const [id, callback] of pendingRequests) {
-        pendingRequests.delete(id);
-        callback({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -1, message: "sidecar crashed" },
-        });
-      }
-    });
-
-    sidecarProcess = {
-      write: (data: string) => child.write(data + "\n"),
-    };
+    const { invoke } = await import("@tauri-apps/api/core");
+    return invoke<T>(command, args);
   }
-}
-
-async function rpcCall<T>(method: string, params?: unknown): Promise<T> {
-  if (isTauri()) {
-    if (!sidecarProcess) {
-      await initSidecar();
-    }
-    const id = ++requestId;
-    const request = { jsonrpc: "2.0", id, method, params };
-
-    if (!sidecarProcess) {
-      throw new Error("Sidecar process failed to start");
-    }
-
-    return new Promise<T>((resolve, reject) => {
-      let timer: ReturnType<typeof setTimeout>;
-      pendingRequests.set(id, (response) => {
-        clearTimeout(timer);
-        if (response.error) {
-          reject(new Error(response.error.message));
-        } else {
-          resolve(response.result as T);
-        }
-      });
-      sidecarProcess!.write(JSON.stringify(request));
-
-      // Timeout after 30 seconds
-      timer = setTimeout(() => {
-        if (pendingRequests.has(id)) {
-          pendingRequests.delete(id);
-          reject(new Error(`RPC call ${method} timed out`));
-        }
-      }, 30000);
-    });
-  }
-
-  // Dev mode: direct HTTP fallback or mock
-  return mockRpcCall<T>(method, params);
+  return mockCall<T>(command, args);
 }
 
 // Mock implementation for development without Tauri
@@ -149,24 +53,21 @@ function saveMockFiles(): void {
 
 const mockFiles = loadMockFiles();
 
-function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
-  const p = (params ?? {}) as Record<string, unknown>;
+function mockCall<T>(command: string, args?: Record<string, unknown>): Promise<T> {
+  const p = (args ?? {}) as Record<string, unknown>;
 
-  switch (method) {
-    case "ping":
-      return Promise.resolve({ pong: true } as T);
-
-    case "config.get":
+  switch (command) {
+    case "get_config":
       return Promise.resolve({
         version: 1,
-        default_model: "claude-sonnet-4",
-        auto_commit: true,
-        commit_prefix: "[promptcase]",
-        token_count_models: ["claude-sonnet-4", "gpt-4o"],
-        lint_rules: {},
+        defaultModel: "claude-sonnet-4",
+        autoCommit: true,
+        commitPrefix: "[promptcase]",
+        tokenCountModels: ["claude-sonnet-4", "gpt-4o"],
+        lintRules: {},
       } as T);
 
-    case "file.list":
+    case "list_files":
       return Promise.resolve(
         [...mockFiles.values()].map((f) => ({
           path: f.path,
@@ -174,17 +75,17 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
         })) as T,
       );
 
-    case "file.read":
+    case "read_file":
       return Promise.resolve(mockFiles.get(p.path as string) as T);
 
-    case "file.create": {
+    case "create_file": {
       const now = new Date().toISOString();
       const file: PromptFile = {
         path: p.path as string,
         frontmatter: {
           id: Math.random().toString(16).slice(2, 10),
           title: (p.title as string) || "Untitled",
-          type: (p.type as "prompt" | "fragment") || "prompt",
+          type: (p.prompt_type as "prompt" | "fragment") || "prompt",
           tags: [],
           folder:
             "/" +
@@ -196,7 +97,7 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
           includes: [],
           created: now,
           modified: now,
-          starred_versions: [],
+          starredVersions: [],
         },
         body: "\n",
         raw: "",
@@ -206,7 +107,7 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
       return Promise.resolve(file as T);
     }
 
-    case "file.write": {
+    case "write_file": {
       const existing = mockFiles.get(p.path as string);
       if (existing) {
         if (p.frontmatter) Object.assign(existing.frontmatter, p.frontmatter as object);
@@ -217,12 +118,12 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
       return Promise.resolve({ ok: true } as T);
     }
 
-    case "file.delete":
+    case "delete_file":
       mockFiles.delete(p.path as string);
       saveMockFiles();
       return Promise.resolve({ ok: true } as T);
 
-    case "file.move": {
+    case "move_file": {
       const file = mockFiles.get(p.from as string);
       if (file) {
         mockFiles.delete(p.from as string);
@@ -233,7 +134,7 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
       return Promise.resolve({ ok: true } as T);
     }
 
-    case "git.status":
+    case "git_status":
       return Promise.resolve({
         initialized: true,
         clean: true,
@@ -241,21 +142,38 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
         repoPath: "~/prompts",
       } as T);
 
-    case "git.log":
+    case "git_log":
       return Promise.resolve([] as T);
 
-    case "tokens.count":
+    case "git_diff":
+      return Promise.resolve({ raw: "", hunks: [] } as T);
+
+    case "git_restore":
+      return Promise.resolve(null as T);
+
+    case "count_tokens":
       return Promise.resolve(
         Math.ceil(((p.text as string) || "").length / 4) as T,
       );
 
-    case "search.query":
+    case "count_tokens_resolved":
+      return Promise.resolve(
+        Math.ceil(((mockFiles.get(p.path as string)?.body || "").length) / 4) as T,
+      );
+
+    case "search_query":
       return Promise.resolve([] as T);
 
-    case "template.lint":
+    case "search_reindex":
+      return Promise.resolve({ ok: true } as T);
+
+    case "lint_file":
       return Promise.resolve([] as T);
 
-    case "template.resolve":
+    case "lint_all":
+      return Promise.resolve({} as T);
+
+    case "resolve_template":
       return Promise.resolve({
         text: mockFiles.get(p.path as string)?.body || "",
         variables: {},
@@ -263,82 +181,65 @@ function mockRpcCall<T>(method: string, params?: unknown): Promise<T> {
         includedFragments: [],
       } as T);
 
-    case "template.variables":
+    case "get_variables":
       return Promise.resolve([] as T);
 
-    case "template.lint_all":
-      return Promise.resolve({} as T);
-
-    case "tokens.count_resolved":
-      return Promise.resolve(
-        Math.ceil(((mockFiles.get(p.path as string)?.body || "").length) / 4) as T,
-      );
-
-    case "search.reindex":
-      return Promise.resolve({ ok: true } as T);
-
-    case "git.diff":
-      return Promise.resolve({ additions: [], deletions: [], hunks: [] } as T);
-
-    case "git.restore":
-      return Promise.resolve(null as T);
-
     default:
-      return Promise.reject(new Error(`Mock: Unknown method ${method}`));
+      return Promise.reject(new Error(`Mock: Unknown command ${command}`));
   }
 }
 
-// Public API
+// Public API - these match the Tauri command names exactly (snake_case)
 export const api = {
   // File operations
-  listFiles: () => rpcCall<PromptEntry[]>("file.list"),
-  readFile: (path: string) => rpcCall<PromptFile>("file.read", { path }),
+  listFiles: () => call<PromptEntry[]>("list_files"),
+  readFile: (path: string) => call<PromptFile>("read_file", { path }),
   writeFile: (path: string, frontmatter?: object, body?: string) =>
-    rpcCall<{ ok: boolean }>("file.write", { path, frontmatter, body }),
+    call<{ ok: boolean }>("write_file", { path, frontmatter, body }),
   createFile: (
     path: string,
     title: string,
     type: "prompt" | "fragment" = "prompt",
     template?: string,
-  ) => rpcCall<PromptFile>("file.create", { path, title, type, template }),
+  ) => call<PromptFile>("create_file", { path, title, prompt_type: type, template }),
   deleteFile: (path: string) =>
-    rpcCall<{ ok: boolean }>("file.delete", { path }),
+    call<{ ok: boolean }>("delete_file", { path }),
   moveFile: (from: string, to: string) =>
-    rpcCall<{ ok: boolean }>("file.move", { from, to }),
+    call<{ ok: boolean }>("move_file", { from, to }),
 
   // Git operations
   gitLog: (path?: string, limit?: number) =>
-    rpcCall<CommitEntry[]>("git.log", { path, limit }),
+    call<CommitEntry[]>("git_log", { path, limit }),
   gitDiff: (path: string, commitA: string, commitB: string) =>
-    rpcCall<DiffResult>("git.diff", { path, commitA, commitB }),
+    call<DiffResult>("git_diff", { path, commit_a: commitA, commit_b: commitB }),
   gitRestore: (path: string, commit: string) =>
-    rpcCall<string | null>("git.restore", { path, commit }),
-  gitStatus: () => rpcCall<RepoStatus>("git.status"),
+    call<string | null>("git_restore", { path, commit }),
+  gitStatus: () => call<RepoStatus>("git_status"),
 
   // Template operations
   resolveTemplate: (path: string, variables?: Record<string, string>) =>
-    rpcCall<ResolvedPrompt>("template.resolve", { path, variables }),
+    call<ResolvedPrompt>("resolve_template", { path, variables }),
   lintFile: (path: string) =>
-    rpcCall<LintResult[]>("template.lint", { path }),
+    call<LintResult[]>("lint_file", { path }),
   lintAll: () =>
-    rpcCall<Record<string, LintResult[]>>("template.lint_all"),
+    call<Record<string, LintResult[]>>("lint_all"),
   getVariables: (path: string) =>
-    rpcCall<VariableDefinition[]>("template.variables", { path }),
+    call<VariableDefinition[]>("get_variables", { path }),
 
   // Token counting
   countTokens: (text: string, model: string) =>
-    rpcCall<number>("tokens.count", { text, model }),
+    call<number>("count_tokens", { text, model }),
   countTokensResolved: (
     path: string,
     model: string,
     variables?: Record<string, string>,
-  ) => rpcCall<number>("tokens.count_resolved", { path, model, variables }),
+  ) => call<number>("count_tokens_resolved", { path, model, variables }),
 
   // Search
   search: (q: string, filters?: object) =>
-    rpcCall<SearchResult[]>("search.query", { q, filters }),
-  reindex: () => rpcCall<{ ok: boolean }>("search.reindex"),
+    call<SearchResult[]>("search_query", { q, filters }),
+  reindex: () => call<{ ok: boolean }>("search_reindex"),
 
   // Config
-  getConfig: () => rpcCall<RepoConfig>("config.get"),
+  getConfig: () => call<RepoConfig>("get_config"),
 };

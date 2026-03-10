@@ -17,12 +17,12 @@ export interface PromptFrontmatter {
   type: "prompt" | "fragment";
   tags: string[];
   folder: string;
-  model_targets?: string[];
+  modelTargets?: string[];
   variables: VariableDefinition[];
   includes: string[];
   created: string;
   modified: string;
-  starred_versions: StarredVersion[];
+  starredVersions: StarredVersion[];
 }
 
 export interface PromptFile {
@@ -88,11 +88,11 @@ export interface SearchResult {
 
 export interface RepoConfig {
   version: number;
-  default_model: string;
-  auto_commit: boolean;
-  commit_prefix: string;
-  token_count_models: string[];
-  lint_rules: Record<string, string>;
+  defaultModel: string;
+  autoCommit: boolean;
+  commitPrefix: string;
+  tokenCountModels: string[];
+  lintRules: Record<string, "error" | "warning" | "info">;
 }
 
 export interface RepoStatus {

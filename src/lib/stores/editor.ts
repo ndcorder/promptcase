@@ -176,7 +176,7 @@ export async function updateTokenCounts(text: string): Promise<void> {
   try {
     const config = await api.getConfig();
     const results = await Promise.all(
-      config.token_count_models.map(async (model) => ({
+      config.tokenCountModels.map(async (model) => ({
         model,
         count: await api.countTokens(text, model),
       })),

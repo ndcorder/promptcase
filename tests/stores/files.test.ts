@@ -28,7 +28,7 @@ function makeEntry(
       includes: [],
       created: "2026-03-07T14:00:00Z",
       modified: "2026-03-07T14:00:00Z",
-      starred_versions: [],
+      starredVersions: [],
     },
   };
 }

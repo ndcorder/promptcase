@@ -1,9 +1,25 @@
 <script lang="ts">
   import { openTabs, closeTab, openFile, hasUnsavedChanges, saveFile, isLoading } from "../stores/editor";
+  import { isTauri } from "../ipc";
   import { get } from "svelte/store";
   import ConfirmDialog from "./ConfirmDialog.svelte";
 
   let confirmPath = $state<string | null>(null);
+
+  async function handleDragStart(e: MouseEvent) {
+    if (!isTauri()) return;
+    // Only drag on primary button, not on interactive elements
+    if (e.buttons !== 1) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, [role=tab], a, input")) return;
+    if (e.detail === 2) {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      getCurrentWindow().toggleMaximize();
+    } else {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      getCurrentWindow().startDragging();
+    }
+  }
 
   function handleTabClick(path: string) {
     openFile(path);
@@ -20,7 +36,7 @@
   }
 </script>
 
-<div class="tabs-bar">
+<div class="tabs-bar" data-tauri-drag-region onmousedown={handleDragStart}>
   {#each $openTabs as tab}
     <div
       class="tab"
@@ -38,7 +54,9 @@
         class="close-btn"
         onclick={(e) => handleClose(e, tab.path)}
       >
-        x
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <path d="M1 1l6 6M7 1l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
       </button>
     </div>
   {/each}
@@ -60,75 +78,97 @@
 <style>
   .tabs-bar {
     display: flex;
-    background: #18181b;
-    border-bottom: 1px solid #27272a;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
     overflow-x: auto;
     min-height: 36px;
+    padding-top: env(titlebar-area-height, 0);
   }
   .tab {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 12px;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
     height: 36px;
-    border: none;
-    border-right: 1px solid #27272a;
-    background: #09090b;
-    color: #71717a;
-    font-size: 13px;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-size: var(--font-size-base);
     cursor: pointer;
     white-space: nowrap;
     font-family: inherit;
+    border: none;
+    position: relative;
+    transition: color var(--transition-fast);
+  }
+  .tab::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border-secondary);
+  }
+  .tab:last-of-type::after {
+    display: none;
   }
   .tab.active {
-    background: #18181b;
-    color: #d4d4d8;
-    border-bottom: 2px solid #a78bfa;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+  }
+  .tab.active::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: var(--space-3);
+    right: var(--space-3);
+    height: 2px;
+    background: var(--accent);
+    border-radius: 1px 1px 0 0;
   }
   .tab:hover {
-    color: #a1a1aa;
+    color: var(--text-secondary);
   }
   .tab:focus-visible {
-    outline: 2px solid #a78bfa;
-    outline-offset: -2px;
+    box-shadow: inset 0 0 0 2px var(--border-focus);
+    border-radius: 0;
   }
   .modified-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #f59e0b;
+    background: var(--color-warning);
   }
   .close-btn {
-    background: none;
-    border: none;
-    color: #52525b;
-    cursor: pointer;
-    padding: 0 2px;
-    font-size: 12px;
-    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-sm);
+    color: var(--text-quaternary);
+    transition: all var(--transition-fast);
   }
   .close-btn:hover {
-    color: #d4d4d8;
+    background: rgba(255, 255, 255, 0.10);
+    color: var(--text-primary);
   }
   .save-btn {
     margin-left: auto;
-    padding: 0 12px;
+    padding: 0 var(--space-3);
     height: 36px;
-    background: none;
-    border: none;
-    color: #a78bfa;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    font-family: inherit;
+    color: var(--accent);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
     white-space: nowrap;
+    transition: all var(--transition-base);
   }
   .save-btn:hover:not(:disabled) {
-    color: #c4b5fd;
-    background: #27272a;
+    color: var(--accent-hover);
+    background: rgba(255, 255, 255, 0.04);
   }
   .save-btn:disabled {
-    color: #52525b;
+    color: var(--text-quaternary);
     cursor: not-allowed;
   }
 </style>
