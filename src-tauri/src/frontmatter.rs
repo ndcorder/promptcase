@@ -246,7 +246,8 @@ fn default_frontmatter(file_path: &str, body: &str, now: &str) -> PromptFrontmat
 
 /// Serialize a `PromptFrontmatter` and body back into a markdown string with YAML frontmatter.
 /// Always updates `modified` to the current timestamp.
-pub fn serialize_prompt_file(frontmatter: &PromptFrontmatter, body: &str) -> String {
+/// Returns an error if YAML serialization fails (prevents silent data loss).
+pub fn serialize_prompt_file(frontmatter: &PromptFrontmatter, body: &str) -> Result<String, crate::error::AppError> {
     let prompt_type_str = match frontmatter.prompt_type {
         PromptType::Prompt => "prompt",
         PromptType::Fragment => "fragment",
@@ -309,8 +310,8 @@ pub fn serialize_prompt_file(frontmatter: &PromptFrontmatter, body: &str) -> Str
         starred_versions,
     };
 
-    let yaml = serde_yaml::to_string(&serializable).unwrap_or_default();
-    format!("---\n{}---\n{}", yaml, body)
+    let yaml = serde_yaml::to_string(&serializable)?;
+    Ok(format!("---\n{}---\n{}", yaml, body))
 }
 
 #[cfg(test)]
@@ -429,7 +430,7 @@ Hello {{include:header.md}} world
             modified: "2024-01-01T00:00:00.000Z".to_string(),
             starred_versions: Vec::new(),
         };
-        let output = serialize_prompt_file(&fm, "Body here\n");
+        let output = serialize_prompt_file(&fm, "Body here\n").unwrap();
         assert!(output.starts_with("---\n"));
         assert!(output.contains("id: abc12345"));
         assert!(output.contains("type: prompt"));
@@ -462,7 +463,7 @@ Content with {{include:other.md}} here
         let parsed = parse_prompt_file("prompts/rt.md", content);
         assert_eq!(parsed.frontmatter.includes, vec!["other.md"]);
 
-        let serialized = serialize_prompt_file(&parsed.frontmatter, &parsed.body);
+        let serialized = serialize_prompt_file(&parsed.frontmatter, &parsed.body).unwrap();
         let reparsed = parse_prompt_file("prompts/rt.md", &serialized);
 
         assert_eq!(reparsed.frontmatter.id, "roundtrip");
@@ -530,7 +531,7 @@ Content with {{include:other.md}} here
         assert_eq!(result.frontmatter.title, "Hello \u{1F680} \u{4F60}\u{597D}");
 
         // Round-trip
-        let serialized = serialize_prompt_file(&result.frontmatter, &result.body);
+        let serialized = serialize_prompt_file(&result.frontmatter, &result.body).unwrap();
         let reparsed = parse_prompt_file("test.md", &serialized);
         assert_eq!(reparsed.frontmatter.title, "Hello \u{1F680} \u{4F60}\u{597D}");
     }
@@ -543,7 +544,7 @@ Content with {{include:other.md}} here
         assert_eq!(result.frontmatter.title, "Large");
         assert_eq!(result.body.len(), 10_000);
 
-        let serialized = serialize_prompt_file(&result.frontmatter, &result.body);
+        let serialized = serialize_prompt_file(&result.frontmatter, &result.body).unwrap();
         assert!(serialized.contains(&large_body));
     }
 
@@ -648,7 +649,7 @@ Body"#;
                 date: "2024-01-01".to_string(),
             }],
         };
-        let output = serialize_prompt_file(&fm, "body\n");
+        let output = serialize_prompt_file(&fm, "body\n").unwrap();
         assert!(output.contains("model_targets"));
         assert!(output.contains("gpt-4"));
         assert!(output.contains("variables"));
@@ -674,7 +675,7 @@ Body"#;
             modified: "2024-01-01T00:00:00.000Z".to_string(),
             starred_versions: Vec::new(),
         };
-        let output = serialize_prompt_file(&fm, "body");
+        let output = serialize_prompt_file(&fm, "body").unwrap();
         assert!(!output.contains("model_targets"));
         assert!(!output.contains("variables"));
         assert!(!output.contains("includes"));

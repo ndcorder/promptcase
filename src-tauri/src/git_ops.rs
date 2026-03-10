@@ -352,7 +352,7 @@ fn commit_touches_file(repo: &Repository, commit: &git2::Commit, file_path: &str
     );
 
     match diff {
-        Ok(d) => d.deltas().len() > 0,
+        Ok(d) => d.deltas().count() > 0,
         Err(_) => false,
     }
 }

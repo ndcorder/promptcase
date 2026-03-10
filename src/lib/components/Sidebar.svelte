@@ -14,11 +14,10 @@
     if (e.buttons !== 1) return;
     const target = e.target as HTMLElement;
     if (target.closest("button, a, input")) return;
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
     if (e.detail === 2) {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
       getCurrentWindow().toggleMaximize();
     } else {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
       getCurrentWindow().startDragging();
     }
   }

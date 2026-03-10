@@ -115,7 +115,7 @@ pub fn write_file(
         fs::create_dir_all(parent)?;
     }
 
-    let content = serialize_prompt_file(frontmatter, body);
+    let content = serialize_prompt_file(frontmatter, body)?;
     fs::write(&full, &content)?;
 
     if config.auto_commit {
