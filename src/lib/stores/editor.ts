@@ -2,10 +2,12 @@ import { writable, derived, get } from "svelte/store";
 import type { PromptFile, TabInfo, LintResult, CommitEntry } from "../types";
 import { api } from "../ipc";
 import { selectedPath, loadFiles } from "./files";
+import { addToast } from "./toast";
 
 export const openTabs = writable<TabInfo[]>([]);
 export const activeFile = writable<PromptFile | null>(null);
 export const editorContent = writable<string>("");
+export const tabBuffers = writable<Map<string, string>>(new Map());
 export const lintResults = writable<LintResult[]>([]);
 export const fileHistory = writable<CommitEntry[]>([]);
 export const tokenCounts = writable<Record<string, number>>({});
@@ -15,6 +17,7 @@ export const variableValues = writable<Record<string, string>>({});
 export const showSidebar = writable(true);
 export const showInspector = writable(true);
 export const showBottomPanel = writable(true);
+export const isLoading = writable(false);
 
 export const activeTab = derived(openTabs, ($tabs) =>
   $tabs.find((t) => t.active),
@@ -28,7 +31,24 @@ export const hasUnsavedChanges = derived(
   },
 );
 
+/** Save current editor content into the tab buffer for the active tab. */
+function saveCurrentBuffer(): void {
+  const file = get(activeFile);
+  if (!file) return;
+  const content = get(editorContent);
+  if (content !== file.body) {
+    tabBuffers.update((m) => {
+      const next = new Map(m);
+      next.set(file.path, content);
+      return next;
+    });
+  }
+}
+
 export async function openFile(path: string): Promise<void> {
+  // Save the current tab's unsaved content before switching away
+  saveCurrentBuffer();
+
   const tabs = get(openTabs);
   const existingTab = tabs.find((t) => t.path === path);
 
@@ -44,11 +64,16 @@ export async function openFile(path: string): Promise<void> {
   }
 
   selectedPath.set(path);
+  isLoading.set(true);
 
   try {
     const file = await api.readFile(path);
     activeFile.set(file);
-    editorContent.set(file.body);
+
+    // Restore from buffer if the tab had unsaved edits, otherwise use file content
+    const buffers = get(tabBuffers);
+    const buffered = buffers.get(path);
+    editorContent.set(buffered !== undefined ? buffered : file.body);
 
     // Update tab title
     openTabs.update((tabs) =>
@@ -67,6 +92,9 @@ export async function openFile(path: string): Promise<void> {
     lintResults.set(lint);
   } catch (err) {
     console.error("Failed to open file:", err);
+    addToast("Failed to open file", "error");
+  } finally {
+    isLoading.set(false);
   }
 }
 
@@ -74,6 +102,8 @@ export async function saveFile(): Promise<void> {
   const file = get(activeFile);
   const content = get(editorContent);
   if (!file) return;
+
+  isLoading.set(true);
 
   try {
     await api.writeFile(file.path, undefined, content);
@@ -85,6 +115,13 @@ export async function saveFile(): Promise<void> {
       ),
     );
 
+    // Clear the buffer — content is now persisted
+    tabBuffers.update((m) => {
+      const next = new Map(m);
+      next.delete(file.path);
+      return next;
+    });
+
     // Refresh lint results and history
     const [lint, history] = await Promise.all([
       api.lintFile(file.path).catch(() => []),
@@ -95,8 +132,13 @@ export async function saveFile(): Promise<void> {
 
     // Refresh file list
     await loadFiles();
+
+    addToast("File saved", "success", 2000);
   } catch (err) {
     console.error("Failed to save file:", err);
+    addToast("Failed to save file", "error");
+  } finally {
+    isLoading.set(false);
   }
 }
 
@@ -104,6 +146,13 @@ export function closeTab(path: string): void {
   const tabs = get(openTabs);
   const idx = tabs.findIndex((t) => t.path === path);
   if (idx === -1) return;
+
+  // Remove buffer for the closed tab
+  tabBuffers.update((m) => {
+    const next = new Map(m);
+    next.delete(path);
+    return next;
+  });
 
   const wasActive = tabs[idx].active;
   const newTabs = tabs.filter((t) => t.path !== path);

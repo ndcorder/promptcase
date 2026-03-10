@@ -9,6 +9,7 @@
   import QuickOpen from "./lib/components/QuickOpen.svelte";
   import CommandPalette from "./lib/components/CommandPalette.svelte";
   import ResolvedPreview from "./lib/components/ResolvedPreview.svelte";
+  import ToastContainer from "./lib/components/ToastContainer.svelte";
   import {
     showSidebar,
     showInspector,
@@ -18,7 +19,7 @@
     activeFile,
   } from "./lib/stores/editor";
   import { loadFiles } from "./lib/stores/files";
-  import { templateHighlightingStyles } from "./lib/codemirror/template-highlighting";
+  import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
@@ -112,6 +113,7 @@
     visible={commandPaletteVisible}
     onClose={() => (commandPaletteVisible = false)}
   />
+  <ToastContainer />
 </div>
 
 <style>

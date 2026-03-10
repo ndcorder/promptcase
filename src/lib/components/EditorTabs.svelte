@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { openTabs, closeTab, openFile, hasUnsavedChanges, saveFile } from "../stores/editor";
+  import { openTabs, closeTab, openFile, hasUnsavedChanges, saveFile, isLoading } from "../stores/editor";
   import { get } from "svelte/store";
   import ConfirmDialog from "./ConfirmDialog.svelte";
 
@@ -43,7 +43,7 @@
     </div>
   {/each}
   {#if $hasUnsavedChanges}
-    <button class="save-btn" onclick={saveFile} title="Save (Cmd+S)">Save</button>
+    <button class="save-btn" onclick={saveFile} title="Save (Cmd+S)" disabled={$isLoading}>{$isLoading ? "Saving..." : "Save"}</button>
   {/if}
 </div>
 
@@ -88,6 +88,10 @@
   .tab:hover {
     color: #a1a1aa;
   }
+  .tab:focus-visible {
+    outline: 2px solid #a78bfa;
+    outline-offset: -2px;
+  }
   .modified-dot {
     width: 6px;
     height: 6px;
@@ -119,8 +123,12 @@
     font-family: inherit;
     white-space: nowrap;
   }
-  .save-btn:hover {
+  .save-btn:hover:not(:disabled) {
     color: #c4b5fd;
     background: #27272a;
+  }
+  .save-btn:disabled {
+    color: #52525b;
+    cursor: not-allowed;
   }
 </style>

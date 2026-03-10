@@ -29,8 +29,8 @@
 </script>
 
 {#if visible}
-  <div class="overlay" onclick={onCancel} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label={title} tabindex="-1">
-    <div class="dialog" onclick={(e) => e.stopPropagation()}>
+  <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onCancel(); }} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label={title} tabindex="-1">
+    <div class="dialog">
       <h3>{title}</h3>
       <p>{message}</p>
       <div class="actions">

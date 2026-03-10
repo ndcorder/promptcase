@@ -27,17 +27,17 @@
   <div class="metadata-panel">
     <h3>Metadata</h3>
     <div class="field">
-      <label>Type</label>
+      <span class="field-label">Type</span>
       <span class="value type-badge" class:fragment={$activeFile.frontmatter.type === "fragment"}>
         {$activeFile.frontmatter.type}
       </span>
     </div>
     <div class="field">
-      <label>ID</label>
+      <span class="field-label">ID</span>
       <span class="value mono">{$activeFile.frontmatter.id}</span>
     </div>
     <div class="field">
-      <label>Tags</label>
+      <span class="field-label">Tags</span>
       <div class="tags">
         {#each $activeFile.frontmatter.tags as tag}
           <button class="tag" onclick={() => removeTag(tag)}>#{tag} <span class="tag-x">x</span></button>
@@ -55,7 +55,7 @@
     </div>
     {#if $activeFile.frontmatter.model_targets?.length}
       <div class="field">
-        <label>Models</label>
+        <span class="field-label">Models</span>
         <div class="models">
           {#each $activeFile.frontmatter.model_targets as model}
             <span class="model">{model}</span>
@@ -64,11 +64,11 @@
       </div>
     {/if}
     <div class="field">
-      <label>Created</label>
+      <span class="field-label">Created</span>
       <span class="value">{new Date($activeFile.frontmatter.created).toLocaleDateString()}</span>
     </div>
     <div class="field">
-      <label>Modified</label>
+      <span class="field-label">Modified</span>
       <span class="value">{new Date($activeFile.frontmatter.modified).toLocaleDateString()}</span>
     </div>
   </div>
@@ -89,7 +89,7 @@
   .field {
     margin-bottom: 8px;
   }
-  label {
+  .field-label {
     display: block;
     font-size: 11px;
     color: #52525b;

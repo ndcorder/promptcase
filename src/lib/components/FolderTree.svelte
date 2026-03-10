@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { FolderNode, PromptEntry } from "../types";
+  import { expandedFolders } from "../stores/files";
 
   interface Props {
     node: FolderNode;
@@ -10,10 +11,31 @@
   }
 
   let { node, depth = 0, onFileSelect, onFileContext, selectedPath }: Props = $props();
-  let expanded = $state(node.expanded);
+
+  // Default new folders to expanded
+  $effect(() => {
+    if (node.name && node.path) {
+      expandedFolders.update((set) => {
+        if (!set.has(node.path) && !set.has(`__seen__${node.path}`)) {
+          set.add(node.path);
+        }
+        set.add(`__seen__${node.path}`);
+        return set;
+      });
+    }
+  });
+
+  let expanded = $derived(!node.name || $expandedFolders.has(node.path));
 
   function toggleExpand() {
-    expanded = !expanded;
+    expandedFolders.update((set) => {
+      if (set.has(node.path)) {
+        set.delete(node.path);
+      } else {
+        set.add(node.path);
+      }
+      return new Set(set);
+    });
   }
 
   function getIcon(entry: PromptEntry): string {

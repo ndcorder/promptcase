@@ -19,6 +19,27 @@ export default defineConfig({
     hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
     watch: { ignored: ["**/src-tauri/**"] },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          codemirror: [
+            "codemirror",
+            "@codemirror/autocomplete",
+            "@codemirror/commands",
+            "@codemirror/lang-markdown",
+            "@codemirror/lang-yaml",
+            "@codemirror/language",
+            "@codemirror/merge",
+            "@codemirror/search",
+            "@codemirror/state",
+            "@codemirror/view",
+            "@lezer/highlight",
+          ],
+        },
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],

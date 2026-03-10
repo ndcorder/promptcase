@@ -5,6 +5,7 @@ import { api } from "../ipc";
 export const promptEntries = writable<PromptEntry[]>([]);
 export const selectedPath = writable<string | null>(null);
 export const tagFilter = writable<string>("");
+export const expandedFolders = writable<Set<string>>(new Set());
 
 export const allTags = derived(promptEntries, ($entries) => {
   const tags = new Set<string>();
@@ -43,7 +44,7 @@ function buildFolderTree(entries: PromptEntry[]): FolderNode {
 
   for (const entry of entries) {
     const parts = entry.path.split("/");
-    const fileName = parts.pop()!;
+    parts.pop();
     let current = root;
 
     for (const part of parts) {

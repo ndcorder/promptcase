@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            sidecar/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install sidecar dependencies
+        run: npm ci --prefix sidecar
+
+      - name: Typecheck frontend
+        run: npx svelte-check --tsconfig ./tsconfig.json
+
+      - name: Typecheck sidecar
+        run: cd sidecar && npx tsc --noEmit
+
+      - name: Test frontend
+        run: npx vitest run
+
+      - name: Test sidecar
+        run: cd sidecar && npx vitest run
+
+  build:
+    needs: lint-and-test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: linux
+          - os: macos-latest
+            artifact: macos
+          - os: windows-latest
+            artifact: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            sidecar/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install sidecar dependencies
+        run: npm ci --prefix sidecar
+
+      - name: Build sidecar
+        run: npm run sidecar:build
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli@^2
+
+      - name: Build Tauri app
+        run: cargo tauri build --debug
+
+      - name: Upload artifacts (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptcase-${{ matrix.artifact }}
+          path: |
+            src-tauri/target/debug/bundle/deb/*.deb
+            src-tauri/target/debug/bundle/appimage/*.AppImage
+          if-no-files-found: warn
+
+      - name: Upload artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptcase-${{ matrix.artifact }}
+          path: |
+            src-tauri/target/debug/bundle/dmg/*.dmg
+            src-tauri/target/debug/bundle/macos/*.app
+          if-no-files-found: warn
+
+      - name: Upload artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: promptcase-${{ matrix.artifact }}
+          path: |
+            src-tauri/target/debug/bundle/msi/*.msi
+            src-tauri/target/debug/bundle/nsis/*.exe
+          if-no-files-found: warn

@@ -1,42 +1,58 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { EditorState } from "@codemirror/state";
-  import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from "@codemirror/view";
-  import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-  import { markdown } from "@codemirror/lang-markdown";
-
-  import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
-  import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-  import { promptcaseTheme, promptcaseHighlighting } from "../codemirror/theme";
-  import { templateHighlighting } from "../codemirror/template-highlighting";
-  import { templateAutocompletion } from "../codemirror/autocomplete";
   import { editorContent, activeFile, markModified, saveFile, updateTokenCounts, showPreview } from "../stores/editor";
 
   let editorContainer: HTMLDivElement;
-  let view: EditorView | null = null;
+  let view: import("@codemirror/view").EditorView | null = null;
   let debounceTimer: ReturnType<typeof setTimeout>;
   let currentPath: string | null = null;
+  let loading = true;
 
-  function createState(content: string): EditorState {
-    return EditorState.create({
+  // Lazy-loaded modules
+  let cmState: typeof import("@codemirror/state");
+  let cmView: typeof import("@codemirror/view");
+  let cmCommands: typeof import("@codemirror/commands");
+  let cmSearch: typeof import("@codemirror/search");
+  let cmAutocomplete: typeof import("@codemirror/autocomplete");
+  let cmMarkdown: typeof import("@codemirror/lang-markdown");
+  let themeModule: typeof import("../codemirror/theme");
+  let templateHighlightingModule: typeof import("../codemirror/template-highlighting");
+  let autocompleteModule: typeof import("../codemirror/autocomplete");
+
+  async function loadCodeMirror() {
+    [cmState, cmView, cmCommands, cmSearch, cmAutocomplete, cmMarkdown, themeModule, templateHighlightingModule, autocompleteModule] = await Promise.all([
+      import("@codemirror/state"),
+      import("@codemirror/view"),
+      import("@codemirror/commands"),
+      import("@codemirror/search"),
+      import("@codemirror/autocomplete"),
+      import("@codemirror/lang-markdown"),
+      import("../codemirror/theme"),
+      import("../codemirror/template-highlighting"),
+      import("../codemirror/autocomplete"),
+    ]);
+  }
+
+  function createState(content: string): import("@codemirror/state").EditorState {
+    return cmState.EditorState.create({
       doc: content,
       extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        history(),
-        closeBrackets(),
-        highlightSelectionMatches(),
-        markdown(),
-        promptcaseTheme,
-        promptcaseHighlighting,
-        templateHighlighting,
-        templateAutocompletion,
-        keymap.of([
-          ...defaultKeymap,
-          ...historyKeymap,
-          ...searchKeymap,
-          ...closeBracketsKeymap,
+        cmView.lineNumbers(),
+        cmView.highlightActiveLine(),
+        cmView.highlightActiveLineGutter(),
+        cmCommands.history(),
+        cmAutocomplete.closeBrackets(),
+        cmSearch.highlightSelectionMatches(),
+        cmMarkdown.markdown(),
+        themeModule.promptcaseTheme,
+        themeModule.promptcaseHighlighting,
+        templateHighlightingModule.templateHighlighting,
+        autocompleteModule.templateAutocompletion,
+        cmView.keymap.of([
+          ...cmCommands.defaultKeymap,
+          ...cmCommands.historyKeymap,
+          ...cmSearch.searchKeymap,
+          ...cmAutocomplete.closeBracketsKeymap,
           {
             key: "Mod-s",
             run: () => {
@@ -52,7 +68,7 @@
             },
           },
         ]),
-        EditorView.updateListener.of((update) => {
+        cmView.EditorView.updateListener.of((update) => {
           if (update.docChanged) {
             const content = update.state.doc.toString();
             editorContent.set(content);
@@ -64,13 +80,16 @@
             }, 300);
           }
         }),
-        EditorView.lineWrapping,
+        cmView.EditorView.lineWrapping,
       ],
     });
   }
 
-  onMount(() => {
-    view = new EditorView({
+  onMount(async () => {
+    await loadCodeMirror();
+    loading = false;
+
+    view = new cmView.EditorView({
       state: createState(""),
       parent: editorContainer,
     });
@@ -81,17 +100,21 @@
     clearTimeout(debounceTimer);
   });
 
-  // React to file changes
+  // React to file/tab changes — restore buffered content if available
   $effect(() => {
     const file = $activeFile;
+    const content = $editorContent;
     if (view && file && file.path !== currentPath) {
       currentPath = file.path;
-      view.setState(createState(file.body));
+      view.setState(createState(content));
     }
   });
 </script>
 
 <div class="editor-wrapper">
+  {#if loading}
+    <div class="editor-loading">Loading editor...</div>
+  {/if}
   <div class="editor-container" bind:this={editorContainer}></div>
 </div>
 
@@ -111,5 +134,13 @@
   }
   .editor-container :global(.cm-scroller) {
     overflow: auto;
+  }
+  .editor-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #71717a;
+    font-size: 14px;
   }
 </style>

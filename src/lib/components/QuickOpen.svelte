@@ -66,8 +66,8 @@
 </script>
 
 {#if visible}
-  <div class="overlay" onclick={onClose} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label="Quick open" tabindex="-1">
-    <div class="quick-open" onclick={(e) => e.stopPropagation()}>
+  <div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onClose(); }} onkeydown={handleKeydown} role="dialog" aria-modal="true" aria-label="Quick open" tabindex="-1">
+    <div class="quick-open">
       <input
         bind:this={inputEl}
         type="text"
