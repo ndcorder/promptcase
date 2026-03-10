@@ -85,9 +85,13 @@ export async function saveFile(): Promise<void> {
       ),
     );
 
-    // Refresh lint results
-    const lint = await api.lintFile(file.path).catch(() => []);
+    // Refresh lint results and history
+    const [lint, history] = await Promise.all([
+      api.lintFile(file.path).catch(() => []),
+      api.gitLog(file.path).catch(() => []),
+    ]);
     lintResults.set(lint);
+    fileHistory.set(history);
 
     // Refresh file list
     await loadFiles();

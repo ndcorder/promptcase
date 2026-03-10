@@ -72,11 +72,10 @@ export class RpcHandler {
         const fm = { ...file.frontmatter, ...(p.frontmatter as object ?? {}) };
         const body = (p.body as string) ?? file.body;
         await this.fileOps.write(p.path as string, fm, body);
-        // Update search index
-        const entry = await this.fileOps.read(p.path as string);
+        // Update search index from in-memory data
         this.search.addDocument(
-          { path: entry.path, frontmatter: entry.frontmatter },
-          entry.body,
+          { path: p.path as string, frontmatter: fm },
+          body,
         );
         return { ok: true };
       }
@@ -96,13 +95,13 @@ export class RpcHandler {
       }
 
       case "file.delete":
-        this.search.removeDocument(p.path as string);
         await this.fileOps.delete(p.path as string);
+        this.search.removeDocument(p.path as string);
         return { ok: true };
 
       case "file.move":
-        this.search.removeDocument(p.from as string);
         await this.fileOps.move(p.from as string, p.to as string);
+        this.search.removeDocument(p.from as string);
         const moved = await this.fileOps.read(p.to as string);
         this.search.addDocument(
           { path: moved.path, frontmatter: moved.frontmatter },

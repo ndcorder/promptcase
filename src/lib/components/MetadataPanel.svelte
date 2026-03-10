@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { activeFile, saveFile } from "../stores/editor";
+  import { activeFile, editorContent, saveFile } from "../stores/editor";
   import { api } from "../ipc";
+  import { get } from "svelte/store";
 
   let newTag = $state("");
 
@@ -9,7 +10,7 @@
     if (!tag || !$activeFile) return;
     if ($activeFile.frontmatter.tags.includes(tag)) { newTag = ""; return; }
     const updatedTags = [...$activeFile.frontmatter.tags, tag];
-    await api.writeFile($activeFile.path, { tags: updatedTags });
+    await api.writeFile($activeFile.path, { tags: updatedTags }, get(editorContent));
     activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
     newTag = "";
   }
@@ -17,7 +18,7 @@
   async function removeTag(tag: string) {
     if (!$activeFile) return;
     const updatedTags = $activeFile.frontmatter.tags.filter((t) => t !== tag);
-    await api.writeFile($activeFile.path, { tags: updatedTags });
+    await api.writeFile($activeFile.path, { tags: updatedTags }, get(editorContent));
     activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
   }
 </script>

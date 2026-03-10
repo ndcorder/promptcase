@@ -1,5 +1,7 @@
 import { createInterface } from "node:readline";
 import { RpcHandler } from "./rpc.ts";
+import { loadConfig } from "./config.ts";
+import { ensureRepoStructure } from "./config.ts";
 import type { RpcRequest, RpcNotification } from "./types.ts";
 
 const repoRoot = process.argv[2] || process.env.PROMPTCASE_REPO || process.cwd();
@@ -10,7 +12,9 @@ async function main() {
     process.exit(0);
   }
 
-  const handler = new RpcHandler(repoRoot);
+  await ensureRepoStructure(repoRoot);
+  const config = await loadConfig(repoRoot);
+  const handler = new RpcHandler(repoRoot, config);
   await handler.init();
 
   const rl = createInterface({ input: process.stdin });

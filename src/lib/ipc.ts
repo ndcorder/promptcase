@@ -89,8 +89,14 @@ async function rpcCall<T>(method: string, params?: unknown): Promise<T> {
     const id = ++requestId;
     const request = { jsonrpc: "2.0", id, method, params };
 
+    if (!sidecarProcess) {
+      throw new Error("Sidecar process failed to start");
+    }
+
     return new Promise<T>((resolve, reject) => {
+      let timer: ReturnType<typeof setTimeout>;
       pendingRequests.set(id, (response) => {
+        clearTimeout(timer);
         if (response.error) {
           reject(new Error(response.error.message));
         } else {
@@ -100,7 +106,7 @@ async function rpcCall<T>(method: string, params?: unknown): Promise<T> {
       sidecarProcess!.write(JSON.stringify(request));
 
       // Timeout after 30 seconds
-      setTimeout(() => {
+      timer = setTimeout(() => {
         if (pendingRequests.has(id)) {
           pendingRequests.delete(id);
           reject(new Error(`RPC call ${method} timed out`));

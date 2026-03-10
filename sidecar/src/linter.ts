@@ -159,7 +159,8 @@ async function checkCircularIncludes(
         join(repoRoot, incPath + ".md"),
         "utf-8",
       );
-      const childIncludes = extractIncludePaths(content);
+      const parsed = parsePromptFile(incPath + ".md", content);
+      const childIncludes = extractIncludePaths(parsed.body);
       if (childIncludes.length > 0) {
         const newVisited = new Set(visited);
         newVisited.add(incPath);

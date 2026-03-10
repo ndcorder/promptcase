@@ -55,16 +55,17 @@ async function resolveIncludes(
       );
     }
 
-    ctx.visitedPaths.add(fragmentPath);
     ctx.includedFragments.push(fragmentPath);
 
     const fragment = await readFragment(ctx.repoRoot, fragmentPath);
     ctx.allVariables.push(...fragment.variables);
 
+    const childVisited = new Set(ctx.visitedPaths);
+    childVisited.add(fragmentPath);
     const resolvedFragment = await resolveIncludes(fragment.body, {
       ...ctx,
       depth: ctx.depth + 1,
-      visitedPaths: new Set(ctx.visitedPaths),
+      visitedPaths: childVisited,
     });
 
     result = result.replace(match[0], resolvedFragment.trim());
