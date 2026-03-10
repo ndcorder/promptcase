@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "sidecar:build": "npm --prefix sidecar run build",
+    "sidecar:build:binary": "npm --prefix sidecar run build:binary",
+    "sidecar:build:all": "npm --prefix sidecar run build:binary:all",
     "sidecar:dev": "npm --prefix sidecar run dev",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -35,7 +35,7 @@ async function initSidecar(): Promise<void> {
 
   if (isTauri()) {
     const { Command } = await import("@tauri-apps/plugin-shell");
-    const cmd = Command.sidecar("promptcase-sidecar");
+    const cmd = Command.sidecar("binaries/promptcase-sidecar");
     const child = await cmd.spawn();
 
     cmd.stdout.on("data", (data: string) => {

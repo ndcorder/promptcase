@@ -84,14 +84,18 @@ jobs:
             patchelf \
             libssl-dev
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Install root dependencies
         run: npm ci
 
       - name: Install sidecar dependencies
         run: npm ci --prefix sidecar
 
-      - name: Build sidecar
-        run: npm run sidecar:build
+      - name: Build sidecar binary
+        run: npm run sidecar:build:binary
 
       - name: Build frontend
         run: npm run build

@@ -7,6 +7,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc && node --experimental-specifier-resolution=node dist/index.js --version",
+    "build:binary": "bun build --compile --minify src/index.ts --outfile promptcase-sidecar && node scripts/install-sidecar.mjs",
+    "build:binary:all": "node scripts/build-all-platforms.mjs",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest"

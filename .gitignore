@@ -8,4 +8,7 @@ dist/
 .idea/
 src-tauri/target/
 src-tauri/gen/
+src-tauri/binaries/promptcase-sidecar-*
 target/
+sidecar/promptcase-sidecar
+sidecar/promptcase-sidecar.exe

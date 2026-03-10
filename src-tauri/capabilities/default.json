@@ -9,7 +9,7 @@
       "identifier": "shell:allow-spawn",
       "allow": [
         {
-          "name": "promptcase-sidecar",
+          "name": "binaries/promptcase-sidecar",
           "sidecar": true,
           "args": []
         }
@@ -19,7 +19,7 @@
       "identifier": "shell:allow-execute",
       "allow": [
         {
-          "name": "promptcase-sidecar",
+          "name": "binaries/promptcase-sidecar",
           "sidecar": true,
           "args": []
         }
