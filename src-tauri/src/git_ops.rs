@@ -106,8 +106,16 @@ pub fn parse_diff(raw: &str) -> DiffResult {
 // ---------------------------------------------------------------------------
 
 /// Open an existing repo or initialise a new one at `repo_root`.
+///
+/// Uses `NO_SEARCH` to prevent git2 from walking up the directory tree
+/// and accidentally opening a parent repository (e.g. a dotfiles repo at `~`).
 pub fn init_repo(repo_root: &Path) -> Result<Repository, AppError> {
-    let repo = match Repository::open(repo_root) {
+    use git2::RepositoryOpenFlags;
+    let repo = match Repository::open_ext(
+        repo_root,
+        RepositoryOpenFlags::NO_SEARCH,
+        std::iter::empty::<&std::ffi::OsStr>(),
+    ) {
         Ok(r) => r,
         Err(_) => {
             let r = Repository::init(repo_root)?;

@@ -54,13 +54,6 @@
           ...cmSearch.searchKeymap,
           ...cmAutocomplete.closeBracketsKeymap,
           {
-            key: "Mod-s",
-            run: () => {
-              saveFile();
-              return true;
-            },
-          },
-          {
             key: "Mod-e",
             run: () => {
               showPreview.update((v) => !v);

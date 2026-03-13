@@ -2,6 +2,38 @@ import App from "./App.svelte";
 import { mount } from "svelte";
 import "./app.css";
 
+// Disable browser context menu to feel native
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Block browser shortcuts that reveal web UI nature
+document.addEventListener("keydown", (e) => {
+  const isMeta = e.metaKey || e.ctrlKey;
+
+  // Reload: Cmd+R, Cmd+Shift+R, F5
+  if ((isMeta && e.key === "r") || e.key === "F5") {
+    e.preventDefault();
+  }
+
+  // DevTools: Cmd+Option+I, Cmd+Shift+I, F12
+  if (
+    (isMeta && e.altKey && e.key === "i") ||
+    (isMeta && e.shiftKey && e.key === "I") ||
+    e.key === "F12"
+  ) {
+    e.preventDefault();
+  }
+
+  // View Source: Cmd+U
+  if (isMeta && e.key === "u") {
+    e.preventDefault();
+  }
+
+  // Cmd+Shift+C (element selector)
+  if (isMeta && e.shiftKey && e.key === "C") {
+    e.preventDefault();
+  }
+});
+
 const app = mount(App, {
   target: document.getElementById("app")!,
 });

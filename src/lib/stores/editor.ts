@@ -84,7 +84,7 @@ export async function openFile(path: string): Promise<void> {
 
     // Load history and lint results in parallel
     const [history, lint] = await Promise.all([
-      api.gitLog(path).catch(() => []),
+      api.gitLog(path).catch((err) => { console.warn("gitLog failed:", err); return []; }),
       api.lintFile(path).catch(() => []),
     ]);
 
@@ -125,7 +125,7 @@ export async function saveFile(): Promise<void> {
     // Refresh lint results and history
     const [lint, history] = await Promise.all([
       api.lintFile(file.path).catch(() => []),
-      api.gitLog(file.path).catch(() => []),
+      api.gitLog(file.path).catch((err) => { console.warn("gitLog failed:", err); return []; }),
     ]);
     lintResults.set(lint);
     fileHistory.set(history);
