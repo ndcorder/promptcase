@@ -3,6 +3,7 @@ import type { PromptFile, TabInfo, LintResult, CommitEntry } from "../types";
 import { api } from "../ipc";
 import { selectedPath, loadFiles } from "./files";
 import { addToast } from "./toast";
+import { scheduleDebouncedCommit } from "./commit";
 
 export const openTabs = writable<TabInfo[]>([]);
 export const activeFile = writable<PromptFile | null>(null);
@@ -122,13 +123,12 @@ export async function saveFile(): Promise<void> {
       return next;
     });
 
-    // Refresh lint results and history
-    const [lint, history] = await Promise.all([
-      api.lintFile(file.path).catch(() => []),
-      api.gitLog(file.path).catch((err) => { console.warn("gitLog failed:", err); return []; }),
-    ]);
+    // Refresh lint results
+    const lint = await api.lintFile(file.path).catch(() => []);
     lintResults.set(lint);
-    fileHistory.set(history);
+
+    // Schedule debounced git commit
+    scheduleDebouncedCommit(file.path);
 
     // Refresh file list
     await loadFiles();

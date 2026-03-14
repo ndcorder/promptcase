@@ -91,6 +91,7 @@ export interface RepoConfig {
   defaultModel: string;
   autoCommit: boolean;
   commitPrefix: string;
+  commitDelayMs?: number;
   tokenCountModels: string[];
   lintRules: Record<string, "error" | "warning" | "info">;
 }

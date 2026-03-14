@@ -1,6 +1,21 @@
 import App from "./App.svelte";
 import { mount } from "svelte";
 import "./app.css";
+import { flushCommits, initCommitConfig } from "./lib/stores/commit";
+
+initCommitConfig();
+
+// Flush pending commits before the window closes
+(async () => {
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    getCurrentWindow().onCloseRequested(async () => {
+      await flushCommits();
+    });
+  } catch {
+    // fallback for non-Tauri environments
+  }
+})();
 
 // Disable browser context menu to feel native
 document.addEventListener("contextmenu", (e) => e.preventDefault());

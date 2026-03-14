@@ -1,14 +1,10 @@
 <script lang="ts">
-  import { activeFile, editorContent, saveFile, fileHistory } from "../stores/editor";
+  import { activeFile, editorContent, saveFile } from "../stores/editor";
+  import { scheduleDebouncedCommit } from "../stores/commit";
   import { api } from "../ipc";
   import { get } from "svelte/store";
 
   let newTag = $state("");
-
-  async function refreshHistory(path: string) {
-    const history = await api.gitLog(path).catch((err) => { console.warn("gitLog failed:", err); return []; });
-    fileHistory.set(history);
-  }
 
   async function addTag() {
     const tag = newTag.trim().toLowerCase();
@@ -19,7 +15,7 @@
     await api.writeFile(path, { tags: updatedTags }, get(editorContent));
     activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
     newTag = "";
-    await refreshHistory(path);
+    scheduleDebouncedCommit(path);
   }
 
   async function removeTag(tag: string) {
@@ -28,7 +24,7 @@
     const path = $activeFile.path;
     await api.writeFile(path, { tags: updatedTags }, get(editorContent));
     activeFile.update((f) => f ? { ...f, frontmatter: { ...f.frontmatter, tags: updatedTags } } : null);
-    await refreshHistory(path);
+    scheduleDebouncedCommit(path);
   }
 </script>
 
