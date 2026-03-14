@@ -149,6 +149,10 @@ pub struct SearchFilters {
     pub filter_type: Option<PromptType>,
 }
 
+fn default_commit_delay_ms() -> u64 {
+    5000
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RepoConfig {
@@ -158,6 +162,8 @@ pub struct RepoConfig {
     pub commit_prefix: String,
     pub token_count_models: Vec<String>,
     pub lint_rules: HashMap<String, LintSeverity>,
+    #[serde(default = "default_commit_delay_ms")]
+    pub commit_delay_ms: u64,
 }
 
 impl Default for RepoConfig {
@@ -181,6 +187,7 @@ impl Default for RepoConfig {
             commit_prefix: "[promptcase]".into(),
             token_count_models: vec!["claude-sonnet-4".into(), "gpt-4o".into()],
             lint_rules,
+            commit_delay_ms: 5000,
         }
     }
 }

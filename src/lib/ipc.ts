@@ -80,4 +80,10 @@ export const api = {
 
   // Config
   getConfig: () => call<RepoConfig>("get_config"),
+
+  // Debounced commit helpers
+  generateCommitMessage: (path: string) =>
+    call<string>("generate_commit_message", { path }),
+  commitFile: (path: string, message: string) =>
+    call<{ ok: boolean }>("commit_file", { path, message }),
 };

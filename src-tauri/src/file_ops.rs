@@ -100,14 +100,14 @@ pub fn read_raw(repo_root: &Path, file_path: &str) -> Result<String, AppError> {
     Ok(content)
 }
 
-/// Write a prompt file (serialized from frontmatter + body) and optionally auto-commit.
+/// Write a prompt file (serialized from frontmatter + body) to disk.
+/// Does NOT auto-commit; the frontend is responsible for debounced commits
+/// via the `commit_file` command.
 pub fn write_file(
     repo_root: &Path,
     file_path: &str,
     frontmatter: &PromptFrontmatter,
     body: &str,
-    repo: Option<&Repository>,
-    config: &RepoConfig,
 ) -> Result<(), AppError> {
     let full = safe_path(repo_root, file_path)?;
 
@@ -117,18 +117,6 @@ pub fn write_file(
 
     let content = serialize_prompt_file(frontmatter, body)?;
     fs::write(&full, &content)?;
-
-    if config.auto_commit {
-        if let Some(r) = repo {
-            auto_commit(
-                r,
-                &[file_path],
-                "Update",
-                Some(&frontmatter.title),
-                &config.commit_prefix,
-            )?;
-        }
-    }
 
     Ok(())
 }
@@ -377,7 +365,7 @@ mod tests {
         // Write (update)
         let mut fm = read.frontmatter.clone();
         fm.title = "Updated".to_string();
-        write_file(root, "test.md", &fm, "New body\n", None, &config).unwrap();
+        write_file(root, "test.md", &fm, "New body\n").unwrap();
 
         let updated = read_file(root, "test.md").unwrap();
         assert_eq!(updated.frontmatter.title, "Updated");
@@ -549,7 +537,6 @@ mod tests {
     fn test_write_preserves_existing_frontmatter_fields() {
         let tmp = TempDir::new().unwrap();
         let root = tmp.path();
-        let config = test_config(false);
 
         // Create file with tags
         let content = "---\nid: \"x\"\ntitle: Original\ntype: prompt\ntags:\n  - important\n  - review\nvariables: []\ncreated: \"2025-01-01\"\nmodified: \"2025-01-01\"\nstarred_versions: []\n---\nOld body\n";
@@ -557,7 +544,7 @@ mod tests {
 
         let read = read_file(root, "tagged.md").unwrap();
         // Write with same frontmatter (preserving tags) but new body
-        write_file(root, "tagged.md", &read.frontmatter, "New body\n", None, &config).unwrap();
+        write_file(root, "tagged.md", &read.frontmatter, "New body\n").unwrap();
 
         let updated = read_file(root, "tagged.md").unwrap();
         assert_eq!(updated.frontmatter.title, "Original");
@@ -644,5 +631,30 @@ mod tests {
         // Verify the raw content contains fragment type
         let raw = read_raw(root, "frag.md").unwrap();
         assert!(raw.contains("type: fragment"));
+    }
+
+    #[test]
+    fn test_write_file_does_not_auto_commit() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let repo = init_repo(root).unwrap();
+        let config = test_config(true);
+
+        // Create a file (this auto-commits)
+        create_file(root, "hello.md", "Hello", "prompt", None, Some(&repo), &config).unwrap();
+
+        let log_before = crate::git_ops::git_log(&repo, None, 10).unwrap();
+        assert_eq!(log_before.len(), 1);
+
+        // Write to the file (should NOT auto-commit)
+        let file = read_file(root, "hello.md").unwrap();
+        let mut fm = file.frontmatter.clone();
+        fm.title = "Updated Hello".to_string();
+        write_file(root, "hello.md", &fm, "New body\n").unwrap();
+
+        // Verify git_log still shows only 1 commit
+        let log_after = crate::git_ops::git_log(&repo, None, 10).unwrap();
+        assert_eq!(log_after.len(), 1);
+        assert!(log_after[0].message.contains("Create"));
     }
 }

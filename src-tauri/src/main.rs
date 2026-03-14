@@ -39,6 +39,8 @@ fn main() {
             commands::search_query,
             commands::search_reindex,
             commands::get_config,
+            commands::generate_commit_message,
+            commands::commit_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

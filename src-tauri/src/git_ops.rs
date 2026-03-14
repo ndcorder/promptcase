@@ -185,6 +185,130 @@ pub fn auto_commit(
     Ok(Some(oid.to_string()))
 }
 
+/// Stage the given files and create a commit with an exact message string.
+/// Unlike `auto_commit`, no formatting is applied — the caller provides the
+/// full commit message (including any prefix).
+pub fn commit_with_message(
+    repo: &Repository,
+    file_paths: &[&str],
+    message: &str,
+) -> Result<Option<String>, AppError> {
+    let mut index = repo.index()?;
+    for fp in file_paths {
+        index.add_path(Path::new(fp))?;
+    }
+    index.write()?;
+    let tree_oid = index.write_tree()?;
+    let tree = repo.find_tree(tree_oid)?;
+    let sig = repo
+        .signature()
+        .unwrap_or_else(|_| git2::Signature::now("Promptcase", "promptcase@local").unwrap());
+    let parent = repo.head().ok().and_then(|h| h.peel_to_commit().ok());
+    let parents: Vec<&git2::Commit> = match parent.as_ref() {
+        Some(p) => vec![p],
+        None => vec![],
+    };
+    let oid = repo.commit(Some("HEAD"), &sig, &sig, message, &tree, &parents)?;
+    Ok(Some(oid.to_string()))
+}
+
+/// Generate a human-readable commit message by comparing the HEAD version
+/// of a file with the current working-tree version.
+///
+/// Examples of generated messages:
+/// - New file: `Create "My Prompt"`
+/// - Title changed: `"New Title": rename from "Old Title"`
+/// - Body edited: `"Title": edit body (+3/-1 lines)`
+/// - Tags changed: `"Title": add tag 'foo', remove tag 'bar'`
+/// - Multiple changes: `"Title": edit body, add tag 'x'`
+/// - Only metadata (e.g. modified timestamp): `Update "Title"`
+pub fn generate_commit_message(
+    repo: &Repository,
+    repo_root: &Path,
+    file_path: &str,
+) -> Result<String, AppError> {
+    let current_content = std::fs::read_to_string(repo_root.join(file_path))
+        .map_err(|e| AppError::Custom(format!("Cannot read file: {e}")))?;
+    let current = crate::frontmatter::parse_prompt_file(file_path, &current_content);
+
+    // Try to get the HEAD version
+    let old_result = show_file_at_commit(repo, file_path, "HEAD");
+    let old = match old_result {
+        Ok(old_content) => Some(crate::frontmatter::parse_prompt_file(file_path, &old_content)),
+        Err(_) => None, // New file (not in HEAD)
+    };
+
+    match old {
+        None => {
+            // New file
+            Ok(format!("Create \"{}\"", current.frontmatter.title))
+        }
+        Some(old_file) => {
+            let mut parts: Vec<String> = Vec::new();
+            let title_changed = old_file.frontmatter.title != current.frontmatter.title;
+
+            // Check tags
+            let old_tags: std::collections::BTreeSet<&str> =
+                old_file.frontmatter.tags.iter().map(|s| s.as_str()).collect();
+            let new_tags: std::collections::BTreeSet<&str> =
+                current.frontmatter.tags.iter().map(|s| s.as_str()).collect();
+
+            for tag in new_tags.difference(&old_tags) {
+                parts.push(format!("add tag '{tag}'"));
+            }
+            for tag in old_tags.difference(&new_tags) {
+                parts.push(format!("remove tag '{tag}'"));
+            }
+
+            // Check body
+            let old_body = old_file.body.trim();
+            let new_body = current.body.trim();
+            if old_body != new_body {
+                let old_lines: Vec<&str> = old_body.lines().collect();
+                let new_lines: Vec<&str> = new_body.lines().collect();
+
+                // Simple line-level diff: count additions and deletions
+                let old_set: std::collections::HashSet<&str> = old_lines.iter().copied().collect();
+                let new_set: std::collections::HashSet<&str> = new_lines.iter().copied().collect();
+
+                let added = new_lines.iter().filter(|l| !old_set.contains(*l)).count();
+                let removed = old_lines.iter().filter(|l| !new_set.contains(*l)).count();
+                let total_changed = added + removed;
+                let total_lines = old_lines.len().max(1);
+
+                if total_changed as f64 / total_lines as f64 > 0.5 {
+                    parts.push("rewrite body".to_string());
+                } else {
+                    parts.push(format!("edit body (+{added}/-{removed} lines)"));
+                }
+            }
+
+            // Build the message
+            if title_changed {
+                if parts.is_empty() {
+                    return Ok(format!(
+                        "\"{}\": rename from \"{}\"",
+                        current.frontmatter.title, old_file.frontmatter.title
+                    ));
+                } else {
+                    parts.insert(
+                        0,
+                        format!("rename from \"{}\"", old_file.frontmatter.title),
+                    );
+                    return Ok(format!("\"{}\": {}", current.frontmatter.title, parts.join(", ")));
+                }
+            }
+
+            if parts.is_empty() {
+                // Only metadata changed (e.g. modified timestamp)
+                Ok(format!("Update \"{}\"", current.frontmatter.title))
+            } else {
+                Ok(format!("\"{}\": {}", current.frontmatter.title, parts.join(", ")))
+            }
+        }
+    }
+}
+
 /// Return commit log entries, optionally filtered by file path.
 pub fn git_log(
     repo: &Repository,
@@ -787,5 +911,116 @@ diff --git a/file.txt b/file.txt
         assert!(messages.iter().any(|m| m.contains("alpha.txt")));
         assert!(messages.iter().any(|m| m.contains("beta.txt")));
         assert!(messages.iter().any(|m| m.contains("gamma.txt")));
+    }
+
+    // -----------------------------------------------------------------------
+    // commit_with_message tests
+    // -----------------------------------------------------------------------
+
+    #[test]
+    fn test_commit_with_message_exact() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        std::fs::write(tmp.path().join("f.txt"), "hello").unwrap();
+        let hash = commit_with_message(&repo, &["f.txt"], "[pc] Update \"My Prompt\": edit body")
+            .unwrap();
+        assert!(hash.is_some());
+
+        let log = git_log(&repo, None, 10).unwrap();
+        assert_eq!(log.len(), 1);
+        assert_eq!(
+            log[0].message,
+            "[pc] Update \"My Prompt\": edit body"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // generate_commit_message tests
+    // -----------------------------------------------------------------------
+
+    fn write_prompt(dir: &Path, name: &str, title: &str, tags: &[&str], body: &str) {
+        let tags_yaml = if tags.is_empty() {
+            "[]".to_string()
+        } else {
+            let items: Vec<String> = tags.iter().map(|t| format!("  - {t}")).collect();
+            format!("\n{}", items.join("\n"))
+        };
+        let content = format!(
+            "---\nid: \"test1234\"\ntitle: \"{title}\"\ntype: prompt\ntags: {tags_yaml}\nvariables: []\ncreated: \"2025-01-01T00:00:00.000Z\"\nmodified: \"2025-01-01T00:00:00.000Z\"\nstarred_versions: []\n---\n{body}"
+        );
+        std::fs::write(dir.join(name), content).unwrap();
+    }
+
+    #[test]
+    fn test_generate_commit_message_new_file() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        write_prompt(tmp.path(), "hello.md", "Hello World", &[], "Some body\n");
+
+        let msg = generate_commit_message(&repo, tmp.path(), "hello.md").unwrap();
+        assert_eq!(msg, "Create \"Hello World\"");
+    }
+
+    #[test]
+    fn test_generate_commit_message_body_change() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        write_prompt(tmp.path(), "p.md", "My Prompt", &[], "Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\n");
+        auto_commit(&repo, &["p.md"], "Create", None, "[pc]").unwrap();
+
+        // Change just one line so it stays under the 50% threshold
+        write_prompt(tmp.path(), "p.md", "My Prompt", &[], "Line 1\nLine 2\nLine 3\nLine 4 changed\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\n");
+
+        let msg = generate_commit_message(&repo, tmp.path(), "p.md").unwrap();
+        assert!(msg.contains("edit body"), "Expected 'edit body' in: {msg}");
+        assert!(msg.starts_with("\"My Prompt\":"));
+    }
+
+    #[test]
+    fn test_generate_commit_message_tag_change() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        write_prompt(tmp.path(), "p.md", "Tagged", &["alpha"], "Body\n");
+        auto_commit(&repo, &["p.md"], "Create", None, "[pc]").unwrap();
+
+        write_prompt(tmp.path(), "p.md", "Tagged", &["alpha", "beta"], "Body\n");
+
+        let msg = generate_commit_message(&repo, tmp.path(), "p.md").unwrap();
+        assert!(msg.contains("add tag 'beta'"), "Expected tag add in: {msg}");
+    }
+
+    #[test]
+    fn test_generate_commit_message_title_change() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        write_prompt(tmp.path(), "p.md", "Old Title", &[], "Body\n");
+        auto_commit(&repo, &["p.md"], "Create", None, "[pc]").unwrap();
+
+        write_prompt(tmp.path(), "p.md", "New Title", &[], "Body\n");
+
+        let msg = generate_commit_message(&repo, tmp.path(), "p.md").unwrap();
+        assert!(msg.contains("rename from \"Old Title\""), "Expected rename in: {msg}");
+        assert!(msg.starts_with("\"New Title\""), "Expected new title prefix in: {msg}");
+    }
+
+    #[test]
+    fn test_generate_commit_message_metadata_only() {
+        let tmp = TempDir::new().unwrap();
+        let repo = init_repo(tmp.path()).unwrap();
+
+        write_prompt(tmp.path(), "p.md", "Stable", &[], "Body\n");
+        auto_commit(&repo, &["p.md"], "Create", None, "[pc]").unwrap();
+
+        // Re-write with same title, tags, body but different modified timestamp
+        let content = "---\nid: \"test1234\"\ntitle: \"Stable\"\ntype: prompt\ntags: []\nvariables: []\ncreated: \"2025-01-01T00:00:00.000Z\"\nmodified: \"2025-06-01T00:00:00.000Z\"\nstarred_versions: []\n---\nBody\n";
+        std::fs::write(tmp.path().join("p.md"), content).unwrap();
+
+        let msg = generate_commit_message(&repo, tmp.path(), "p.md").unwrap();
+        assert_eq!(msg, "Update \"Stable\"");
     }
 }

@@ -90,10 +90,7 @@ pub fn write_file(
 
     let body = body.unwrap_or(existing.body);
 
-    {
-        let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::write_file(&state.repo_root, &path, &fm, &body, Some(&*repo), &state.config)?;
-    }
+    crate::file_ops::write_file(&state.repo_root, &path, &fm, &body)?;
 
     let entry = PromptEntry {
         path,
@@ -301,4 +298,31 @@ pub fn search_reindex(
 #[tauri::command]
 pub fn get_config(state: tauri::State<'_, AppState>) -> Result<RepoConfig, AppError> {
     Ok(state.config.clone())
+}
+
+#[tauri::command]
+pub fn generate_commit_message(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<String, AppError> {
+    let repo = state
+        .repo
+        .lock()
+        .map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    crate::git_ops::generate_commit_message(&*repo, &state.repo_root, &path)
+}
+
+#[tauri::command]
+pub fn commit_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    message: String,
+) -> Result<serde_json::Value, AppError> {
+    let repo = state
+        .repo
+        .lock()
+        .map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    let full_message = format!("{} {}", state.config.commit_prefix, message);
+    crate::git_ops::commit_with_message(&*repo, &[path.as_str()], &full_message)?;
+    Ok(serde_json::json!({ "ok": true }))
 }

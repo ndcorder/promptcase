@@ -120,6 +120,7 @@ fn merge_config(defaults: RepoConfig, parsed: RepoConfig) -> RepoConfig {
         commit_prefix: parsed.commit_prefix,
         token_count_models: parsed.token_count_models,
         lint_rules,
+        commit_delay_ms: parsed.commit_delay_ms,
     }
 }
 
@@ -298,5 +299,32 @@ mod tests {
         let config = load_config(dir.path()).unwrap();
         assert_eq!(config.version, 1);
         assert_eq!(config.default_model, "claude-sonnet-4");
+    }
+
+    #[test]
+    fn commit_delay_ms_default_value() {
+        let config = RepoConfig::default();
+        assert_eq!(config.commit_delay_ms, 5000);
+    }
+
+    #[test]
+    fn commit_delay_ms_from_yaml() {
+        let dir = tmp_dir();
+        let yaml = "version: 1\ndefaultModel: claude-sonnet-4\nautoCommit: true\ncommitPrefix: '[pc]'\ntokenCountModels:\n  - claude-sonnet-4\nlintRules: {}\ncommitDelayMs: 3000\n";
+        fs::write(dir.path().join(CONFIG_FILE), yaml).unwrap();
+
+        let config = load_config(dir.path()).unwrap();
+        assert_eq!(config.commit_delay_ms, 3000);
+    }
+
+    #[test]
+    fn commit_delay_ms_defaults_when_missing_from_yaml() {
+        let dir = tmp_dir();
+        // YAML without commitDelayMs — should default to 5000
+        let yaml = "version: 1\ndefaultModel: claude-sonnet-4\nautoCommit: true\ncommitPrefix: '[pc]'\ntokenCountModels:\n  - claude-sonnet-4\nlintRules: {}\n";
+        fs::write(dir.path().join(CONFIG_FILE), yaml).unwrap();
+
+        let config = load_config(dir.path()).unwrap();
+        assert_eq!(config.commit_delay_ms, 5000);
     }
 }
