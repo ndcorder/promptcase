@@ -9,8 +9,11 @@ initCommitConfig();
 (async () => {
   try {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    getCurrentWindow().onCloseRequested(async () => {
+    const appWindow = getCurrentWindow();
+    appWindow.onCloseRequested(async (event) => {
+      event.preventDefault();
       await flushCommits();
+      await appWindow.close();
     });
   } catch {
     // fallback for non-Tauri environments

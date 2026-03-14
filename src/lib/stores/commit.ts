@@ -5,14 +5,16 @@ import { activeFile, fileHistory } from "./editor";
 let dirtyFiles = new Set<string>();
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let commitDelayMs = 5000;
+let autoCommitEnabled = true;
 
 /** Load commit delay from config (call once at startup). */
 export async function initCommitConfig(): Promise<void> {
   try {
     const config = await api.getConfig();
-    if (config.commitDelayMs) {
+    if (config.commitDelayMs != null) {
       commitDelayMs = config.commitDelayMs;
     }
+    autoCommitEnabled = config.autoCommit;
   } catch {
     // use default
   }
@@ -20,6 +22,7 @@ export async function initCommitConfig(): Promise<void> {
 
 /** Mark a file as dirty and (re)start the debounce timer. */
 export function scheduleDebouncedCommit(path: string): void {
+  if (!autoCommitEnabled) return;
   dirtyFiles.add(path);
 
   if (debounceTimer !== null) {
