@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import Sidebar from "./lib/components/Sidebar.svelte";
   import EditorTabs from "./lib/components/EditorTabs.svelte";
   import Editor from "./lib/components/Editor.svelte";
@@ -17,12 +18,17 @@
     showPreview,
     saveFile,
     activeFile,
+    openTabs,
+    closeTab,
+    openFile,
   } from "./lib/stores/editor";
   import { loadFiles } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
+  import { registerAction } from "$lib/stores/keybindings";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
+  let showSettings = $state(false);
 
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const modKey = isMac ? "Cmd" : "Ctrl";
@@ -31,32 +37,26 @@
     await loadFiles();
   });
 
-  function handleGlobalKeydown(e: KeyboardEvent) {
-    const mod = e.metaKey || e.ctrlKey;
+  // Register keybinding actions
+  registerAction("save", () => saveFile());
+  registerAction("openQuickOpen", () => (quickOpenVisible = true));
+  registerAction("openCommandPalette", () => (commandPaletteVisible = true));
+  registerAction("toggleSidebar", () => showSidebar.update((v) => !v));
+  registerAction("toggleBottomPanel", () => showBottomPanel.update((v) => !v));
+  registerAction("togglePreview", () => showPreview.update((v) => !v));
+  registerAction("closeTab", () => {
+    const tab = get(openTabs).find((t) => t.active);
+    if (tab) closeTab(tab.path);
+  });
+  registerAction("openSettings", () => (showSettings = true));
 
-    if (mod && e.key === "p" && !e.shiftKey) {
-      e.preventDefault();
-      quickOpenVisible = true;
-    } else if (mod && e.shiftKey && e.key === "P") {
-      e.preventDefault();
-      commandPaletteVisible = true;
-    } else if (mod && e.key === "s") {
-      e.preventDefault();
-      saveFile();
-    } else if (mod && e.key === "b") {
-      e.preventDefault();
-      showSidebar.update((v) => !v);
-    } else if (mod && e.key === "j") {
-      e.preventDefault();
-      showBottomPanel.update((v) => !v);
-    } else if (mod && e.key === "e") {
-      e.preventDefault();
-      showPreview.update((v) => !v);
-    }
+  for (let i = 1; i <= 9; i++) {
+    registerAction(`switchTab${i}`, () => {
+      const tabs = get(openTabs);
+      if (tabs[i - 1]) openFile(tabs[i - 1].path);
+    });
   }
 </script>
-
-<svelte:window onkeydown={handleGlobalKeydown} />
 
 {@html `<style>${templateHighlightingStyles}</style>`}
 

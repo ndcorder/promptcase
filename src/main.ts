@@ -2,8 +2,15 @@ import App from "./App.svelte";
 import { mount } from "svelte";
 import "./app.css";
 import { flushCommits, initCommitConfig } from "./lib/stores/commit";
+import { initTheme } from "./lib/stores/theme";
+import {
+  initKeybindings,
+  handleGlobalKeydown,
+} from "./lib/stores/keybindings";
 
 initCommitConfig();
+initTheme();
+initKeybindings();
 
 // Flush pending commits before the window closes
 (async () => {
@@ -23,34 +30,8 @@ initCommitConfig();
 // Disable browser context menu to feel native
 document.addEventListener("contextmenu", (e) => e.preventDefault());
 
-// Block browser shortcuts that reveal web UI nature
-document.addEventListener("keydown", (e) => {
-  const isMeta = e.metaKey || e.ctrlKey;
-
-  // Reload: Cmd+R, Cmd+Shift+R, F5
-  if ((isMeta && e.key === "r") || e.key === "F5") {
-    e.preventDefault();
-  }
-
-  // DevTools: Cmd+Option+I, Cmd+Shift+I, F12
-  if (
-    (isMeta && e.altKey && e.key === "i") ||
-    (isMeta && e.shiftKey && e.key === "I") ||
-    e.key === "F12"
-  ) {
-    e.preventDefault();
-  }
-
-  // View Source: Cmd+U
-  if (isMeta && e.key === "u") {
-    e.preventDefault();
-  }
-
-  // Cmd+Shift+C (element selector)
-  if (isMeta && e.shiftKey && e.key === "C") {
-    e.preventDefault();
-  }
-});
+// Block browser shortcuts and handle app keybindings
+document.addEventListener("keydown", handleGlobalKeydown);
 
 const app = mount(App, {
   target: document.getElementById("app")!,
