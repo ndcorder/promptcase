@@ -4,7 +4,7 @@
   import InputDialog from "./InputDialog.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
-  import { folderTree, loadFiles, promptEntries } from "../stores/files";
+  import { folderTree, loadFiles, promptEntries, filesLoading } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
@@ -140,7 +140,15 @@
   <TagFilter />
 
   <div class="tree-container">
-    {#if $folderTree.children.length === 0 && $folderTree.files.length === 0}
+    {#if $filesLoading}
+      <div class="skeleton-list">
+        <div class="skeleton" style="width: 70%"></div>
+        <div class="skeleton" style="width: 85%"></div>
+        <div class="skeleton" style="width: 60%"></div>
+        <div class="skeleton" style="width: 75%"></div>
+        <div class="skeleton" style="width: 50%"></div>
+      </div>
+    {:else if $folderTree.children.length === 0 && $folderTree.files.length === 0}
       <div class="empty-tree">
         <p>No prompts yet.</p>
         <button class="create-btn" onclick={handleNewPrompt}>Create your first prompt</button>
@@ -233,6 +241,7 @@
   }
   .action-btn:active {
     background: rgba(255, 255, 255, 0.04);
+    transform: scale(0.98);
   }
   .tree-container {
     flex: 1;
@@ -263,5 +272,23 @@
   }
   .create-btn:hover {
     background: var(--accent-hover);
+  }
+  .create-btn:active {
+    background: var(--accent);
+    transform: scale(0.98);
+  }
+  .skeleton-list {
+    padding: var(--space-2) var(--space-3);
+  }
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.15; }
+    50% { opacity: 0.25; }
+  }
+  .skeleton {
+    background: var(--text-quaternary);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+    height: 20px;
+    margin-bottom: var(--space-1);
   }
 </style>

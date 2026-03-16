@@ -63,11 +63,9 @@
 {@html `<style>${templateHighlightingStyles}</style>`}
 
 <div class="app" class:sidebar-right={$sidebarPosition === "right"} data-testid="app">
-  {#if $showSidebar}
-    <div class="panel sidebar-panel" style="width: 260px;">
+  <div class="panel sidebar-panel" class:collapsed={!$showSidebar}>
       <Sidebar />
     </div>
-  {/if}
 
   <div class="main-area">
     <EditorTabs />
@@ -92,18 +90,14 @@
       {/if}
     </div>
 
-    {#if $showBottomPanel}
-      <div class="bottom-panel" style="height: 160px;">
+    <div class="bottom-panel" class:collapsed={!$showBottomPanel}>
         <ProblemsPanel />
       </div>
-    {/if}
   </div>
 
-  {#if $showInspector}
-    <div class="panel inspector-panel" style="width: 280px;">
+  <div class="panel inspector-panel" class:collapsed={!$showInspector}>
       <Inspector />
     </div>
-  {/if}
 
   <StatusBar />
 
@@ -135,6 +129,13 @@
     grid-row: 1;
     grid-column: 1;
     overflow: hidden;
+    width: 260px;
+    transition: width var(--transition-base) ease, opacity var(--transition-base) ease;
+  }
+  .sidebar-panel.collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
   }
   .main-area {
     grid-row: 1;
@@ -148,6 +149,13 @@
     grid-row: 1;
     grid-column: 3;
     overflow: hidden;
+    width: 280px;
+    transition: width var(--transition-base) ease, opacity var(--transition-base) ease;
+  }
+  .inspector-panel.collapsed {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
   }
   .editor-area {
     flex: 1;
@@ -168,6 +176,14 @@
     border-top: 1px solid var(--border-primary);
     background: var(--bg-secondary);
     overflow: hidden;
+    height: 160px;
+    transition: height var(--transition-base) ease, opacity var(--transition-base) ease;
+  }
+  .bottom-panel.collapsed {
+    height: 0;
+    opacity: 0;
+    border-top: none;
+    pointer-events: none;
   }
   :global(footer.status-bar) {
     grid-row: 2;
@@ -195,7 +211,7 @@
   }
   .empty-content kbd {
     background: var(--bg-tertiary);
-    padding: 2px 6px;
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     font-family: var(--font-mono);
     font-size: var(--font-size-base);

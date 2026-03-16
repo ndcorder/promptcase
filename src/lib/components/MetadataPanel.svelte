@@ -97,7 +97,7 @@
     display: block;
     font-size: var(--font-size-xs);
     color: var(--text-quaternary);
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
   }
   .value {
     font-size: var(--font-size-base);
@@ -117,7 +117,7 @@
     font-size: var(--font-size-sm);
     color: var(--accent);
     background: var(--accent-subtle);
-    padding: 1px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
@@ -126,6 +126,10 @@
   }
   .tag:hover {
     background: var(--accent-selection);
+  }
+  .tag:active {
+    background: var(--accent-subtle);
+    transform: scale(0.96);
   }
   .tag-x {
     color: var(--text-quaternary);
@@ -138,7 +142,7 @@
   }
   .tag-input {
     width: 100%;
-    padding: 4px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     background: var(--bg-primary);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
@@ -158,7 +162,7 @@
     font-size: var(--font-size-sm);
     color: var(--color-success);
     background: var(--color-success-subtle);
-    padding: 1px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
   }
 </style>

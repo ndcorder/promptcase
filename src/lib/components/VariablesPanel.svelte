@@ -6,42 +6,50 @@
   }
 </script>
 
-{#if $activeFile && $activeFile.frontmatter.variables.length > 0}
+{#if $activeFile}
   <div class="variables-panel">
     <h3>Variables</h3>
-    {#each $activeFile.frontmatter.variables as variable}
-      <div class="variable">
-        <div class="var-header">
-          <span class="var-name">{"{{" + variable.name + "}}"}</span>
-          {#if variable.enum}
-            <span class="var-type">enum</span>
+    {#if $activeFile.frontmatter.variables.length > 0}
+      {#each $activeFile.frontmatter.variables as variable}
+        <div class="variable">
+          <div class="var-header">
+            <span class="var-name">{"{{" + variable.name + "}}"}</span>
+            {#if variable.enum}
+              <span class="var-type">enum</span>
+            {/if}
+          </div>
+          {#if variable.description}
+            <div class="var-desc">{variable.description}</div>
           {/if}
+          <div class="var-default">
+            {#if variable.enum}
+              <select
+                class="var-input"
+                onchange={(e) => handleInput(variable.name, e.currentTarget.value)}
+              >
+                {#each variable.enum as option}
+                  <option value={option} selected={option === variable.default}>{option}</option>
+                {/each}
+              </select>
+            {:else}
+              <input
+                type="text"
+                class="var-input"
+                value={variable.default || ""}
+                placeholder="No default"
+                oninput={(e) => handleInput(variable.name, e.currentTarget.value)}
+              />
+            {/if}
+          </div>
         </div>
-        {#if variable.description}
-          <div class="var-desc">{variable.description}</div>
-        {/if}
-        <div class="var-default">
-          {#if variable.enum}
-            <select
-              class="var-input"
-              onchange={(e) => handleInput(variable.name, e.currentTarget.value)}
-            >
-              {#each variable.enum as option}
-                <option value={option} selected={option === variable.default}>{option}</option>
-              {/each}
-            </select>
-          {:else}
-            <input
-              type="text"
-              class="var-input"
-              value={variable.default || ""}
-              placeholder="No default"
-              oninput={(e) => handleInput(variable.name, e.currentTarget.value)}
-            />
-          {/if}
-        </div>
+      {/each}
+    {:else}
+      <div class="empty-state">
+        <span class="icon">{"{ }"}</span>
+        <span class="message">No variables defined</span>
+        <span class="hint">{"Use {{name}} syntax in your prompt"}</span>
       </div>
-    {/each}
+    {/if}
   </div>
 {/if}
 
@@ -77,11 +85,11 @@
     color: var(--color-variable);
   }
   .var-type {
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     color: var(--color-include);
     background: var(--color-include-subtle);
     padding: 0 var(--space-1);
-    border-radius: 2px;
+    border-radius: var(--radius-sm);
   }
   .var-desc {
     font-size: var(--font-size-sm);
@@ -104,5 +112,29 @@
   }
   select.var-input {
     cursor: pointer;
+  }
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-3);
+    text-align: center;
+  }
+  .empty-state .icon {
+    font-size: 24px;
+    opacity: 0.4;
+    font-family: var(--font-mono);
+  }
+  .empty-state .message {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+    font-style: italic;
+  }
+  .empty-state .hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-quaternary);
+    font-family: var(--font-mono);
   }
 </style>

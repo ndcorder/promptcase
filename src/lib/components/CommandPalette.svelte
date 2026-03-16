@@ -179,7 +179,7 @@
     color: var(--text-tertiary);
     font-family: var(--font-mono);
     background: var(--bg-primary);
-    padding: 2px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-primary);
   }

@@ -6,6 +6,7 @@ export const promptEntries = writable<PromptEntry[]>([]);
 export const selectedPath = writable<string | null>(null);
 export const tagFilter = writable<string>("");
 export const expandedFolders = writable<Set<string>>(new Set());
+export const filesLoading = writable<boolean>(true);
 
 export const allTags = derived(promptEntries, ($entries) => {
   const tags = new Set<string>();
@@ -80,10 +81,13 @@ function sortTree(node: FolderNode): void {
 }
 
 export async function loadFiles(): Promise<void> {
+  filesLoading.set(true);
   try {
     const entries = await api.listFiles();
     promptEntries.set(entries);
   } catch (err) {
     console.error("Failed to load files:", err);
+  } finally {
+    filesLoading.set(false);
   }
 }

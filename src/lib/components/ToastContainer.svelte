@@ -1,13 +1,23 @@
 <script lang="ts">
   import { toasts, removeToast } from "../stores/toast";
+
+  let dismissing = $state<Set<string>>(new Set());
+
+  function handleDismiss(id: string) {
+    dismissing = new Set([...dismissing, id]);
+    setTimeout(() => {
+      removeToast(id);
+      dismissing = new Set([...dismissing].filter((d) => d !== id));
+    }, 150);
+  }
 </script>
 
 {#if $toasts.length > 0}
   <div class="toast-container">
     {#each $toasts as toast (toast.id)}
-      <div class="toast toast-{toast.type}">
+      <div class="toast toast-{toast.type}" class:dismissing={dismissing.has(toast.id)}>
         <span class="toast-message">{toast.message}</span>
-        <button class="toast-close" onclick={() => removeToast(toast.id)}>
+        <button class="toast-close" onclick={() => handleDismiss(toast.id)}>
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>
@@ -40,7 +50,11 @@
     font-size: var(--font-size-base);
     box-shadow: var(--shadow-popover);
     border: 1px solid var(--border-primary);
-    animation: toast-in 0.2s ease-out;
+    animation: toast-in 200ms ease-out;
+  }
+
+  .toast.dismissing {
+    animation: toast-out 150ms ease-in forwards;
   }
 
   .toast-error {
@@ -75,14 +89,29 @@
     color: var(--text-primary);
   }
 
+  .toast-close:active {
+    background: rgba(255, 255, 255, 0.04);
+  }
+
   @keyframes toast-in {
     from {
+      transform: translateX(100%);
       opacity: 0;
-      transform: translateY(8px);
     }
     to {
+      transform: translateX(0);
       opacity: 1;
-      transform: translateY(0);
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
     }
   }
 </style>

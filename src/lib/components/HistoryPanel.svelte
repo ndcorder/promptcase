@@ -33,7 +33,10 @@
 <div class="history-panel">
   <h3>History</h3>
   {#if $fileHistory.length === 0}
-    <p class="empty">No history yet.</p>
+    <div class="empty-state">
+      <span class="icon">&#128337;</span>
+      <span class="message">Save to start tracking versions</span>
+    </div>
   {:else}
     <div class="history-list">
       {#each $fileHistory as commit}
@@ -68,15 +71,28 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  .empty {
-    color: var(--text-tertiary);
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-3);
+    text-align: center;
+  }
+  .empty-state .icon {
+    font-size: 24px;
+    opacity: 0.4;
+  }
+  .empty-state .message {
     font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
     font-style: italic;
   }
   .history-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--space-1);
   }
   .history-entry {
     display: block;
@@ -90,6 +106,9 @@
   .history-entry:hover {
     background: rgba(255, 255, 255, 0.04);
   }
+  .history-entry:active {
+    background: rgba(255, 255, 255, 0.02);
+  }
   .history-entry.starred {
     border-left: 2px solid var(--color-warning);
     padding-left: var(--space-2);
@@ -98,7 +117,7 @@
     display: flex;
     align-items: center;
     gap: var(--space-1);
-    margin-bottom: 2px;
+    margin-bottom: var(--space-1);
   }
   .star {
     color: var(--color-warning);
@@ -123,7 +142,7 @@
   .star-label {
     font-size: var(--font-size-xs);
     color: var(--color-warning);
-    margin-top: 2px;
+    margin-top: var(--space-1);
     font-style: italic;
   }
 </style>

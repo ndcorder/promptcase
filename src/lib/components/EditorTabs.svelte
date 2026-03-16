@@ -40,6 +40,7 @@
     <div
       class="tab"
       class:active={tab.active}
+      class:modified={tab.modified}
       role="tab"
       tabindex="0"
       onclick={() => handleTabClick(tab.path)}
@@ -127,6 +128,10 @@
   }
   .tab:hover {
     color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .tab:active {
+    background: rgba(255, 255, 255, 0.02);
   }
   .tab:focus-visible {
     box-shadow: inset 0 0 0 2px var(--border-focus);
@@ -146,11 +151,20 @@
     height: 16px;
     border-radius: var(--radius-sm);
     color: var(--text-quaternary);
+    opacity: 0;
     transition: all var(--transition-fast);
+  }
+  .tab:hover .close-btn,
+  .tab.active .close-btn,
+  .tab.modified .close-btn {
+    opacity: 1;
   }
   .close-btn:hover {
     background: rgba(255, 255, 255, 0.10);
     color: var(--text-primary);
+  }
+  .close-btn:active {
+    background: rgba(255, 255, 255, 0.04);
   }
   .save-btn {
     margin-left: auto;

@@ -20,7 +20,10 @@
     </span>
   </div>
   {#if $lintResults.length === 0}
-    <div class="no-problems">No problems detected.</div>
+    <div class="no-problems">
+      <span class="check-icon">&#10003;</span>
+      <span>No issues</span>
+    </div>
   {:else}
     <div class="problems-list">
       {#each $lintResults as result}
@@ -58,9 +61,17 @@
     color: var(--text-tertiary);
   }
   .no-problems {
-    padding: var(--space-3);
-    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    color: var(--color-success);
     font-size: var(--font-size-sm);
+    flex: 1;
+  }
+  .check-icon {
+    font-size: var(--font-size-lg);
   }
   .problems-list {
     flex: 1;
@@ -78,6 +89,9 @@
   .problem:hover {
     background: rgba(255, 255, 255, 0.04);
   }
+  .problem:active {
+    background: rgba(255, 255, 255, 0.02);
+  }
   .severity {
     width: 16px;
     height: 16px;
@@ -85,7 +99,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    font-size: 10px;
+    font-size: var(--font-size-xs);
     font-weight: 700;
   }
   .problem.error .severity {

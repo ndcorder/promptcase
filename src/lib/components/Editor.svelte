@@ -120,7 +120,7 @@
 
 <div class="editor-wrapper">
   {#if loading}
-    <div class="editor-loading">Loading editor...</div>
+    <div class="editor-loading-bar"></div>
   {/if}
   <div class="editor-container" bind:this={editorContainer}></div>
 </div>
@@ -148,12 +148,14 @@
     font-family: var(--editor-font-family, "Fira Code", monospace);
     font-size: var(--editor-font-size, 14px);
   }
-  .editor-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    color: var(--text-tertiary);
-    font-size: var(--font-size-md);
+  @keyframes editor-loading {
+    0% { width: 0%; }
+    50% { width: 70%; }
+    100% { width: 100%; }
+  }
+  .editor-loading-bar {
+    height: 2px;
+    background: var(--accent);
+    animation: editor-loading 600ms ease-out forwards;
   }
 </style>

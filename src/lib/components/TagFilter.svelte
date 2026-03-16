@@ -87,7 +87,7 @@
     border: none;
     color: var(--text-primary);
     font-size: var(--font-size-base);
-    padding: 6px 0;
+    padding: var(--space-1) 0;
     outline: none;
     font-family: inherit;
   }
@@ -126,12 +126,15 @@
     font-size: var(--font-size-base);
     text-align: left;
     border-radius: var(--radius-sm);
-    margin: 2px;
-    width: calc(100% - 4px);
+    margin: var(--space-1);
+    width: calc(100% - var(--space-2));
     transition: all var(--transition-fast);
   }
   .suggestion:hover {
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-primary);
+  }
+  .suggestion:active {
+    background: rgba(255, 255, 255, 0.04);
   }
 </style>

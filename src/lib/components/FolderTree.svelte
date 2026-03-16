@@ -86,7 +86,7 @@
     align-items: center;
     gap: var(--space-2);
     width: 100%;
-    padding: 5px var(--space-2);
+    padding: var(--space-1) var(--space-2);
     border: none;
     background: none;
     color: var(--text-primary);
@@ -101,10 +101,14 @@
   }
   .folder-row:hover,
   .file-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--accent-subtle);
+  }
+  .folder-row:active,
+  .file-row:active {
+    background: rgba(255, 255, 255, 0.03);
   }
   .file-row.selected {
-    background: var(--accent-subtle);
+    background: var(--accent-selection);
     color: var(--text-primary);
   }
   .chevron {
