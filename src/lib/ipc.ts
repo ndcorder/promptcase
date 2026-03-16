@@ -80,6 +80,8 @@ export const api = {
 
   // Config
   getConfig: () => call<RepoConfig>("get_config"),
+  updateConfig: (updates: Partial<RepoConfig>) =>
+    call<RepoConfig>("update_config", { updates }),
 
   // Debounced commit helpers
   generateCommitMessage: (path: string) =>

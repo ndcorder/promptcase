@@ -153,6 +153,26 @@ fn default_commit_delay_ms() -> u64 {
     5000
 }
 
+fn default_editor_font_family() -> String {
+    "Fira Code".into()
+}
+
+fn default_editor_font_size() -> u16 {
+    14
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_theme() -> String {
+    "dark".into()
+}
+
+fn default_sidebar_position() -> String {
+    "left".into()
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RepoConfig {
@@ -164,6 +184,28 @@ pub struct RepoConfig {
     pub lint_rules: HashMap<String, LintSeverity>,
     #[serde(default = "default_commit_delay_ms")]
     pub commit_delay_ms: u64,
+
+    // Editor
+    #[serde(default = "default_editor_font_family")]
+    pub editor_font_family: String,
+    #[serde(default = "default_editor_font_size")]
+    pub editor_font_size: u16,
+    #[serde(default)]
+    pub editor_word_wrap: bool,
+    #[serde(default = "default_true")]
+    pub editor_line_numbers: bool,
+    #[serde(default)]
+    pub editor_show_invisibles: bool,
+
+    // Appearance
+    #[serde(default = "default_theme")]
+    pub theme: String,
+    #[serde(default = "default_sidebar_position")]
+    pub sidebar_position: String,
+
+    // Keybindings (user overrides only)
+    #[serde(default)]
+    pub keybindings: HashMap<String, String>,
 }
 
 impl Default for RepoConfig {
@@ -188,6 +230,14 @@ impl Default for RepoConfig {
             token_count_models: vec!["claude-sonnet-4".into(), "gpt-4o".into()],
             lint_rules,
             commit_delay_ms: 5000,
+            editor_font_family: default_editor_font_family(),
+            editor_font_size: default_editor_font_size(),
+            editor_word_wrap: false,
+            editor_line_numbers: true,
+            editor_show_invisibles: false,
+            theme: default_theme(),
+            sidebar_position: default_sidebar_position(),
+            keybindings: HashMap::new(),
         }
     }
 }

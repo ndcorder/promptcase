@@ -94,6 +94,14 @@ export interface RepoConfig {
   commitDelayMs?: number;
   tokenCountModels: string[];
   lintRules: Record<string, "error" | "warning" | "info">;
+  editorFontFamily: string;
+  editorFontSize: number;
+  editorWordWrap: boolean;
+  editorLineNumbers: boolean;
+  editorShowInvisibles: boolean;
+  theme: string;
+  sidebarPosition: string;
+  keybindings: Record<string, string>;
 }
 
 export interface RepoStatus {

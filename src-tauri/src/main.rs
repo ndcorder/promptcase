@@ -39,6 +39,7 @@ fn main() {
             commands::search_query,
             commands::search_reindex,
             commands::get_config,
+            commands::update_config,
             commands::generate_commit_message,
             commands::commit_file,
         ])

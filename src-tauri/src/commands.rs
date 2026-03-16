@@ -301,6 +301,25 @@ pub fn get_config(state: tauri::State<'_, AppState>) -> Result<RepoConfig, AppEr
 }
 
 #[tauri::command]
+pub fn update_config(
+    state: tauri::State<'_, AppState>,
+    updates: serde_json::Value,
+) -> Result<RepoConfig, AppError> {
+    let config = crate::config::load_config(&state.repo_root)?;
+    let mut config_value = serde_json::to_value(&config)
+        .map_err(|e| AppError::Custom(format!("Failed to serialize config: {e}")))?;
+    if let (Some(base), Some(updates)) = (config_value.as_object_mut(), updates.as_object()) {
+        for (k, v) in updates {
+            base.insert(k.clone(), v.clone());
+        }
+    }
+    let config: RepoConfig = serde_json::from_value(config_value)
+        .map_err(|e| AppError::Custom(format!("Failed to deserialize config: {e}")))?;
+    crate::config::save_config(&state.repo_root, &config)?;
+    Ok(config)
+}
+
+#[tauri::command]
 pub fn generate_commit_message(
     state: tauri::State<'_, AppState>,
     path: String,

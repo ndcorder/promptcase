@@ -121,6 +121,14 @@ fn merge_config(defaults: RepoConfig, parsed: RepoConfig) -> RepoConfig {
         token_count_models: parsed.token_count_models,
         lint_rules,
         commit_delay_ms: parsed.commit_delay_ms,
+        editor_font_family: parsed.editor_font_family,
+        editor_font_size: parsed.editor_font_size,
+        editor_word_wrap: parsed.editor_word_wrap,
+        editor_line_numbers: parsed.editor_line_numbers,
+        editor_show_invisibles: parsed.editor_show_invisibles,
+        theme: parsed.theme,
+        sidebar_position: parsed.sidebar_position,
+        keybindings: parsed.keybindings,
     }
 }
 
@@ -326,5 +334,59 @@ mod tests {
 
         let config = load_config(dir.path()).unwrap();
         assert_eq!(config.commit_delay_ms, 5000);
+    }
+
+    #[test]
+    fn test_new_config_fields_defaults() {
+        let config = RepoConfig::default();
+        assert_eq!(config.editor_font_family, "Fira Code");
+        assert_eq!(config.editor_font_size, 14);
+        assert!(!config.editor_word_wrap);
+        assert!(config.editor_line_numbers);
+        assert!(!config.editor_show_invisibles);
+        assert_eq!(config.theme, "dark");
+        assert_eq!(config.sidebar_position, "left");
+        assert!(config.keybindings.is_empty());
+    }
+
+    #[test]
+    fn test_config_backward_compat() {
+        let dir = tmp_dir();
+        // Old-style YAML without any of the new fields
+        let yaml = "version: 1\ndefaultModel: claude-sonnet-4\nautoCommit: true\ncommitPrefix: '[pc]'\ntokenCountModels:\n  - claude-sonnet-4\nlintRules: {}\n";
+        fs::write(dir.path().join(CONFIG_FILE), yaml).unwrap();
+
+        let config = load_config(dir.path()).unwrap();
+        // Serde defaults should kick in for all new fields
+        assert_eq!(config.editor_font_family, "Fira Code");
+        assert_eq!(config.editor_font_size, 14);
+        assert!(!config.editor_word_wrap);
+        assert!(config.editor_line_numbers);
+        assert!(!config.editor_show_invisibles);
+        assert_eq!(config.theme, "dark");
+        assert_eq!(config.sidebar_position, "left");
+        assert!(config.keybindings.is_empty());
+    }
+
+    #[test]
+    fn test_update_config_round_trip() {
+        let dir = tmp_dir();
+        // Save defaults
+        save_config(dir.path(), &RepoConfig::default()).unwrap();
+        let loaded = load_config(dir.path()).unwrap();
+        assert_eq!(loaded.theme, "dark");
+
+        // Modify a field, save, reload
+        let mut updated = loaded;
+        updated.theme = "light".into();
+        updated.editor_font_size = 18;
+        save_config(dir.path(), &updated).unwrap();
+
+        let reloaded = load_config(dir.path()).unwrap();
+        assert_eq!(reloaded.theme, "light");
+        assert_eq!(reloaded.editor_font_size, 18);
+        // Other defaults should still be intact
+        assert_eq!(reloaded.editor_font_family, "Fira Code");
+        assert!(reloaded.editor_line_numbers);
     }
 }
