@@ -7,10 +7,14 @@ import {
   initKeybindings,
   handleGlobalKeydown,
 } from "./lib/stores/keybindings";
+import { loadEditorConfig } from "./lib/stores/editor";
+import { initLayout } from "./lib/stores/layout";
 
 initCommitConfig();
 initTheme();
 initKeybindings();
+loadEditorConfig();
+initLayout();
 
 // Flush pending commits before the window closes
 (async () => {

@@ -5,6 +5,29 @@ import { selectedPath, loadFiles } from "./files";
 import { addToast } from "./toast";
 import { scheduleDebouncedCommit } from "./commit";
 
+export const editorConfig = writable({
+  editorFontFamily: "Fira Code",
+  editorFontSize: 14,
+  editorWordWrap: true,
+  editorLineNumbers: true,
+  editorShowInvisibles: false,
+});
+
+export async function loadEditorConfig(): Promise<void> {
+  try {
+    const config = await api.getConfig();
+    editorConfig.set({
+      editorFontFamily: config.editorFontFamily,
+      editorFontSize: config.editorFontSize,
+      editorWordWrap: config.editorWordWrap,
+      editorLineNumbers: config.editorLineNumbers,
+      editorShowInvisibles: config.editorShowInvisibles,
+    });
+  } catch {
+    // use defaults
+  }
+}
+
 export const openTabs = writable<TabInfo[]>([]);
 export const activeFile = writable<PromptFile | null>(null);
 export const editorContent = writable<string>("");

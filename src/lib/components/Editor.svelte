@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { editorContent, activeFile, markModified, saveFile, updateTokenCounts, showPreview } from "../stores/editor";
+  import { editorContent, activeFile, markModified, saveFile, updateTokenCounts, showPreview, editorConfig } from "../stores/editor";
 
   let editorContainer: HTMLDivElement;
   let view: import("@codemirror/view").EditorView | null = null;
@@ -107,6 +107,15 @@
       view.setState(createState(content));
     }
   });
+
+  // Apply editor config changes (font, etc.) to the container
+  $effect(() => {
+    const cfg = $editorConfig;
+    if (editorContainer) {
+      editorContainer.style.setProperty("--editor-font-family", cfg.editorFontFamily || "Fira Code, monospace");
+      editorContainer.style.setProperty("--editor-font-size", `${cfg.editorFontSize || 14}px`);
+    }
+  });
 </script>
 
 <div class="editor-wrapper">
@@ -129,9 +138,15 @@
   }
   .editor-container :global(.cm-editor) {
     height: 100%;
+    font-family: var(--editor-font-family, "Fira Code", monospace);
+    font-size: var(--editor-font-size, 14px);
   }
   .editor-container :global(.cm-scroller) {
     overflow: auto;
+  }
+  .editor-container :global(.cm-gutters) {
+    font-family: var(--editor-font-family, "Fira Code", monospace);
+    font-size: var(--editor-font-size, 14px);
   }
   .editor-loading {
     display: flex;

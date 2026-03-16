@@ -11,6 +11,7 @@
   import CommandPalette from "./lib/components/CommandPalette.svelte";
   import ResolvedPreview from "./lib/components/ResolvedPreview.svelte";
   import ToastContainer from "./lib/components/ToastContainer.svelte";
+  import SettingsModal from "./lib/components/SettingsModal.svelte";
   import {
     showSidebar,
     showInspector,
@@ -25,6 +26,7 @@
   import { loadFiles } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
+  import { sidebarPosition } from "$lib/stores/layout";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
@@ -60,7 +62,7 @@
 
 {@html `<style>${templateHighlightingStyles}</style>`}
 
-<div class="app" data-testid="app">
+<div class="app" class:sidebar-right={$sidebarPosition === "right"} data-testid="app">
   {#if $showSidebar}
     <div class="panel sidebar-panel" style="width: 260px;">
       <Sidebar />
@@ -114,6 +116,9 @@
     onClose={() => (commandPaletteVisible = false)}
   />
   <ToastContainer />
+  {#if showSettings}
+    <SettingsModal onclose={() => (showSettings = false)} />
+  {/if}
 </div>
 
 <style>
@@ -199,5 +204,18 @@
   }
   .panel {
     flex-shrink: 0;
+  }
+  /* Sidebar right: swap sidebar and inspector via grid order */
+  .app.sidebar-right .sidebar-panel {
+    order: 3;
+    grid-column: 3;
+  }
+  .app.sidebar-right .main-area {
+    order: 2;
+    grid-column: 2;
+  }
+  .app.sidebar-right .inspector-panel {
+    order: 1;
+    grid-column: 1;
   }
 </style>
