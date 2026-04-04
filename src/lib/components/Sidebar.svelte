@@ -114,6 +114,29 @@
     dialogVisible = true;
   }
 
+  async function handleImport() {
+    try {
+      const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+      const selected = await openDialog({
+        multiple: true,
+        filters: [{ name: "Markdown", extensions: ["md"] }],
+      });
+      if (!selected || (Array.isArray(selected) && selected.length === 0)) return;
+      const paths = Array.isArray(selected) ? selected : [selected];
+      // Import to the currently selected folder or root
+      const destination = $selectedPath
+        ? $selectedPath.includes("/")
+          ? $selectedPath.substring(0, $selectedPath.lastIndexOf("/"))
+          : ""
+        : "";
+      await api.importFiles(paths, destination);
+      await loadFiles();
+      addToast(`Imported ${paths.length} file(s)`, "success");
+    } catch (err) {
+      addToast(`Import failed: ${err}`, "error");
+    }
+  }
+
   function handleRename(path: string) {
     const entries = get(promptEntries);
     const entry = entries.find((e) => e.path === path);
@@ -357,6 +380,11 @@
   <div class="sidebar-header" data-tauri-drag-region onmousedown={handleDragStart}>
     <h2 data-tauri-drag-region>Promptcase</h2>
     <div class="header-actions">
+      <button class="action-btn" onclick={handleImport} title="Import .md files">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M1 8v2.5h10V8M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button class="action-btn" onclick={handleNewPrompt} title="New Prompt">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
           <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -478,6 +506,7 @@
   <FileContextMenu
     x={contextMenu.x}
     y={contextMenu.y}
+    path={contextMenu.path}
     bulkCount={$selectedPaths.size > 1 ? $selectedPaths.size : 1}
     onRename={() => handleRename(contextMenu!.path)}
     onDuplicate={() => handleDuplicate(contextMenu!.path)}
@@ -508,11 +537,11 @@
   onConfirm={handleBulkAddTag}
   onCancel={() => { bulkTagDialogVisible = false; }}
 />
-
 {#if folderContextMenu}
   <FolderContextMenu
     x={folderContextMenu.x}
     y={folderContextMenu.y}
+    folderPath={folderContextMenu.path}
     isEmpty={($folderFileCounts.get(folderContextMenu.path) ?? 0) === 0}
     onNewPromptHere={() => handleNewPromptInFolder(folderContextMenu!.path)}
     onNewFolderInside={() => handleCreateFolder(folderContextMenu!.path)}
@@ -528,7 +557,6 @@
   onConfirm={handleMoveToConfirm}
   onCancel={() => { moveToDialogVisible = false; }}
 />
-
 <style>
   .sidebar {
     display: flex;

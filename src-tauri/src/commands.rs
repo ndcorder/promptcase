@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::io::Write as _;
 use std::path::PathBuf;
 
 use tauri::Manager;
@@ -501,4 +502,213 @@ pub fn cancel_prompt(state: tauri::State<'_, AppState>) -> Result<serde_json::Va
         .prompt_cancelled
         .store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(serde_json::json!({ "ok": true }))
+}
+
+// ---------------------------------------------------------------------------
+// Export commands
+// ---------------------------------------------------------------------------
+
+/// Return file content in the requested format: "raw", "body", or "resolved".
+#[tauri::command]
+pub fn export_file_clipboard(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    format: String,
+) -> Result<String, AppError> {
+    match format.as_str() {
+        "raw" => crate::file_ops::read_raw(&state.repo_root, &path),
+        "body" => {
+            let file = crate::file_ops::read_file(&state.repo_root, &path)?;
+            Ok(file.body)
+        }
+        "resolved" => {
+            let content = crate::file_ops::read_raw(&state.repo_root, &path)?;
+            let resolved =
+                crate::template::resolve_template(&path, &content, &state.repo_root, None)?;
+            Ok(resolved.text)
+        }
+        other => Err(AppError::Custom(format!("Unknown export format: {other}"))),
+    }
+}
+
+/// Walk a folder and create a zip archive of all .md files.
+/// If `output_path` is provided, writes the zip to that absolute path on disk.
+/// Otherwise returns the raw bytes.
+#[tauri::command]
+pub fn export_folder_zip(
+    state: tauri::State<'_, AppState>,
+    folder: String,
+    output_path: Option<String>,
+) -> Result<Vec<u8>, AppError> {
+    use walkdir::WalkDir;
+    use zip::write::SimpleFileOptions;
+    use zip::ZipWriter;
+
+    let base = crate::file_ops::safe_path(&state.repo_root, &folder)?;
+    if !base.is_dir() {
+        return Err(AppError::Custom(format!("Not a directory: {folder}")));
+    }
+
+    let mut buf = Vec::new();
+    {
+        let mut zw = ZipWriter::new(std::io::Cursor::new(&mut buf));
+        let options = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+
+        let walker = WalkDir::new(&base).into_iter().filter_entry(|e| {
+            if e.depth() == 0 {
+                return true;
+            }
+            let name = e.file_name().to_string_lossy();
+            !name.starts_with('.') && name != "node_modules" && name != "_templates"
+        });
+
+        for entry in walker {
+            let entry = entry.map_err(|e| AppError::Custom(format!("walkdir: {e}")))?;
+            if !entry.file_type().is_file() {
+                continue;
+            }
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("md") {
+                continue;
+            }
+            let rel = path
+                .strip_prefix(&base)
+                .unwrap_or(path)
+                .to_string_lossy()
+                .replace('\\', "/");
+            let content = std::fs::read_to_string(path)?;
+            zw.start_file(&rel, options)
+                .map_err(|e| AppError::Custom(format!("zip start_file: {e}")))?;
+            zw.write_all(content.as_bytes())?;
+        }
+
+        zw.finish().map_err(|e| AppError::Custom(format!("zip finish: {e}")))?;
+    }
+
+    if let Some(out) = output_path {
+        std::fs::write(&out, &buf)?;
+        Ok(vec![])
+    } else {
+        Ok(buf)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Import commands
+// ---------------------------------------------------------------------------
+
+/// Import .md files from absolute paths on disk. Each file gets a new ID and
+/// is written to `destination` (a repo-relative folder path, e.g. "prompts").
+/// Returns the list of created entries.
+#[tauri::command]
+pub fn import_files(
+    state: tauri::State<'_, AppState>,
+    paths: Vec<String>,
+    destination: String,
+) -> Result<Vec<PromptEntry>, AppError> {
+    let mut created = Vec::new();
+
+    for src in &paths {
+        let src_path = std::path::Path::new(src);
+        if !src_path.is_file() {
+            return Err(AppError::Custom(format!("Not a file: {src}")));
+        }
+        let content = std::fs::read_to_string(src_path)?;
+        let filename = src_path
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy();
+
+        let dest_rel = if destination.is_empty() || destination == "/" {
+            filename.to_string()
+        } else {
+            format!("{}/{}", destination.trim_matches('/'), filename)
+        };
+
+        // Parse, assign new ID, and re-serialize
+        let parsed = crate::frontmatter::parse_prompt_file(&dest_rel, &content);
+        let mut fm = parsed.frontmatter.clone();
+        fm.id = crate::frontmatter::generate_id();
+
+        let body = &parsed.body;
+        crate::file_ops::write_file(&state.repo_root, &dest_rel, &fm, body)?;
+
+        created.push(PromptEntry {
+            path: dest_rel.clone(),
+            frontmatter: fm,
+        });
+    }
+
+    // Update search index
+    {
+        let mut search = state
+            .search
+            .lock()
+            .map_err(|_| AppError::Custom("Internal lock error".into()))?;
+        for entry in &created {
+            if let Ok(content) = crate::file_ops::read_raw(&state.repo_root, &entry.path) {
+                search.add_document(entry, &content);
+            }
+        }
+    }
+
+    Ok(created)
+}
+
+/// Create a new prompt from plain text. Returns the created entry.
+#[tauri::command]
+pub fn import_from_text(
+    state: tauri::State<'_, AppState>,
+    title: String,
+    text: String,
+    destination: String,
+) -> Result<PromptFile, AppError> {
+    let slug = title
+        .to_lowercase()
+        .replace(|c: char| !c.is_alphanumeric() && c != '-', "-")
+        .trim_matches('-')
+        .to_string();
+    let filename = format!("{slug}.md");
+    let dest_rel = if destination.is_empty() || destination == "/" {
+        filename
+    } else {
+        format!("{}/{}", destination.trim_matches('/'), filename)
+    };
+
+    let config = &state.config;
+    let repo = state
+        .repo
+        .lock()
+        .map_err(|_| AppError::Custom("Internal lock error".into()))?;
+
+    let file = crate::file_ops::create_file(
+        &state.repo_root,
+        &dest_rel,
+        &title,
+        "prompt",
+        None,
+        Some(&*repo),
+        config,
+    )?;
+
+    // Now overwrite the body with the provided text
+    crate::file_ops::write_file(&state.repo_root, &dest_rel, &file.frontmatter, &text)?;
+
+    // Update search index
+    {
+        let mut search = state
+            .search
+            .lock()
+            .map_err(|_| AppError::Custom("Internal lock error".into()))?;
+        let entry = PromptEntry {
+            path: dest_rel.clone(),
+            frontmatter: file.frontmatter.clone(),
+        };
+        let content = crate::file_ops::read_raw(&state.repo_root, &dest_rel)?;
+        search.add_document(&entry, &content);
+    }
+
+    let final_file = crate::file_ops::read_file(&state.repo_root, &dest_rel)?;
+    Ok(final_file)
 }

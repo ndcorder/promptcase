@@ -123,4 +123,16 @@ export const api = {
     maxTokens: number;
   }) => call<{ ok: boolean }>("run_prompt", { request }),
   cancelPrompt: () => call<{ ok: boolean }>("cancel_prompt"),
+
+  // Export
+  exportFileClipboard: (path: string, format: "raw" | "body" | "resolved") =>
+    call<string>("export_file_clipboard", { path, format }),
+  exportFolderZip: (folder: string, outputPath?: string) =>
+    call<number[]>("export_folder_zip", { folder, outputPath: outputPath ?? null }),
+
+  // Import
+  importFiles: (paths: string[], destination: string) =>
+    call<PromptEntry[]>("import_files", { paths, destination }),
+  importFromText: (title: string, text: string, destination: string) =>
+    call<PromptFile>("import_from_text", { title, text, destination }),
 };
