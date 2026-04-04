@@ -15,6 +15,7 @@ mod types;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             commands::setup(app)?;
             Ok(())
@@ -42,6 +43,10 @@ fn main() {
             commands::update_config,
             commands::generate_commit_message,
             commands::commit_file,
+            commands::export_file_clipboard,
+            commands::export_folder_zip,
+            commands::import_files,
+            commands::import_from_text,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
