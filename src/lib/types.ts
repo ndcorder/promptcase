@@ -102,6 +102,14 @@ export interface RepoConfig {
   theme: string;
   sidebarPosition: string;
   keybindings: Record<string, string>;
+  savedFilters: SavedFilter[];
+}
+
+export interface SavedFilter {
+  name: string;
+  tag: string;
+  query: string;
+  icon: string;
 }
 
 export interface RepoStatus {
