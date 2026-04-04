@@ -109,16 +109,13 @@
 
   async function handleDuplicate(path: string) {
     try {
-      const file = await api.readFile(path);
-      const baseName = path.replace(/\.md$/, "");
-      const newPath = baseName + "-copy.md";
-      const newTitle = (file.frontmatter.title || "Untitled") + " (Copy)";
-      const created = await api.createFile(newPath, newTitle, "prompt");
-      await api.writeFile(created.path, undefined, file.body);
+      const file = await api.duplicateFile(path);
       await loadFiles();
-      openFile(created.path);
+      openFile(file.path);
+      addToast(`Duplicated as "${file.frontmatter.title}"`, "success", 2000);
     } catch (err) {
       console.error("Failed to duplicate:", err);
+      addToast("Failed to duplicate", "error");
     }
   }
 
