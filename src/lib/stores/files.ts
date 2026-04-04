@@ -1,15 +1,16 @@
 import { writable, derived, get } from "svelte/store";
-import type { PromptEntry, FolderNode } from "../types";
+import type { PromptEntry, FolderNode, SavedFilter } from "../types";
 import { api } from "../ipc";
 
 export const promptEntries = writable<PromptEntry[]>([]);
 export const selectedPath = writable<string | null>(null);
 export const tagFilter = writable<string>("");
+export const searchQuery = writable<string>("");
 export const expandedFolders = writable<Set<string>>(new Set());
 export const filesLoading = writable<boolean>(true);
 export const selectedPaths = writable<Set<string>>(new Set());
-export const searchQuery = writable<string>("");
 export const knownFolders = writable<string[]>([]);
+export const activeSavedFilter = writable<SavedFilter | null>(null);
 
 export const allTags = derived(promptEntries, ($entries) => {
   const tags = new Set<string>();

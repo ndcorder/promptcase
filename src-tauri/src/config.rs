@@ -160,6 +160,7 @@ fn merge_config(defaults: RepoConfig, parsed: RepoConfig) -> RepoConfig {
         theme: parsed.theme,
         sidebar_position: parsed.sidebar_position,
         keybindings: parsed.keybindings,
+        saved_filters: parsed.saved_filters,
     }
 }
 
@@ -419,5 +420,78 @@ mod tests {
         // Other defaults should still be intact
         assert_eq!(reloaded.editor_font_family, "Fira Code");
         assert!(reloaded.editor_line_numbers);
+    }
+
+    #[test]
+    fn test_saved_filters_deserialization() {
+        let dir = tmp_dir();
+        let yaml = r#"
+version: 1
+defaultModel: claude-sonnet-4
+autoCommit: true
+commitPrefix: '[pc]'
+tokenCountModels:
+  - claude-sonnet-4
+lintRules: {}
+savedFilters:
+  - name: Draft prompts
+    tag: draft
+    query: ""
+    icon: pencil
+  - name: All system
+    tag: system
+    query: important
+    icon: star
+"#;
+        fs::write(dir.path().join(CONFIG_FILE), yaml).unwrap();
+        let config = load_config(dir.path()).unwrap();
+        assert_eq!(config.saved_filters.len(), 2);
+        assert_eq!(config.saved_filters[0].name, "Draft prompts");
+        assert_eq!(config.saved_filters[0].tag, "draft");
+        assert_eq!(config.saved_filters[0].icon, "pencil");
+        assert_eq!(config.saved_filters[1].name, "All system");
+        assert_eq!(config.saved_filters[1].query, "important");
+    }
+
+    #[test]
+    fn test_saved_filters_missing_defaults_to_empty() {
+        let dir = tmp_dir();
+        let yaml = "version: 1\ndefaultModel: claude-sonnet-4\nautoCommit: true\ncommitPrefix: '[pc]'\ntokenCountModels:\n  - claude-sonnet-4\nlintRules: {}\n";
+        fs::write(dir.path().join(CONFIG_FILE), yaml).unwrap();
+        let config = load_config(dir.path()).unwrap();
+        assert!(config.saved_filters.is_empty());
+    }
+
+    #[test]
+    fn test_saved_filters_roundtrip() {
+        use crate::types::SavedFilter;
+
+        let dir = tmp_dir();
+        let mut config = RepoConfig::default();
+        config.saved_filters = vec![
+            SavedFilter {
+                name: "My Filter".into(),
+                tag: "production".into(),
+                query: "deploy".into(),
+                icon: "rocket".into(),
+            },
+            SavedFilter {
+                name: "Drafts".into(),
+                tag: "draft".into(),
+                query: "".into(),
+                icon: "".into(),
+            },
+        ];
+        save_config(dir.path(), &config).unwrap();
+
+        let loaded = load_config(dir.path()).unwrap();
+        assert_eq!(loaded.saved_filters.len(), 2);
+        assert_eq!(loaded.saved_filters[0].name, "My Filter");
+        assert_eq!(loaded.saved_filters[0].tag, "production");
+        assert_eq!(loaded.saved_filters[0].query, "deploy");
+        assert_eq!(loaded.saved_filters[0].icon, "rocket");
+        assert_eq!(loaded.saved_filters[1].name, "Drafts");
+        assert_eq!(loaded.saved_filters[1].tag, "draft");
+        assert_eq!(loaded.saved_filters[1].query, "");
     }
 }

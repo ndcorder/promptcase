@@ -1,6 +1,7 @@
 <script lang="ts">
   import FolderTree from "./FolderTree.svelte";
   import TagFilter from "./TagFilter.svelte";
+  import SmartFolders from "./SmartFolders.svelte";
   import InputDialog from "./InputDialog.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
@@ -320,6 +321,28 @@
   function handleDialogCancel() {
     dialogVisible = false;
   }
+
+  // Bidirectional search sync: local value <-> store
+  let searchValue = $state("");
+
+  function handleSearchInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    searchValue = target.value;
+    searchQuery.set(searchValue);
+  }
+
+  function clearSearch() {
+    searchValue = "";
+    searchQuery.set("");
+  }
+
+  // When the store changes externally (e.g. from a saved filter), update local value
+  $effect(() => {
+    const storeVal = $searchQuery;
+    if (storeVal !== searchValue) {
+      searchValue = storeVal;
+    }
+  });
 </script>
 
 <svelte:window onkeydown={(e) => {
@@ -353,6 +376,8 @@
   </div>
 
   <TagFilter />
+
+  <SmartFolders />
 
   <div class="sidebar-search">
     <svg class="search-icon" width="13" height="13" viewBox="0 0 16 16">
@@ -649,5 +674,47 @@
     border-radius: var(--radius-sm);
     height: 20px;
     margin-bottom: var(--space-1);
+  }
+  .search-input {
+    position: relative;
+    margin: 0 var(--space-2) var(--space-1);
+  }
+  .search-input .search-icon {
+    position: absolute;
+    left: var(--space-2);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-quaternary);
+    pointer-events: none;
+  }
+  .search-input input {
+    width: 100%;
+    padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 16px);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+  .search-input input::placeholder {
+    color: var(--text-quaternary);
+  }
+  .search-input input:focus {
+    border-color: var(--accent);
+  }
+  .clear-search {
+    position: absolute;
+    right: var(--space-1);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: var(--space-1);
+    color: var(--text-quaternary);
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast);
+  }
+  .clear-search:hover {
+    color: var(--text-secondary);
   }
 </style>
