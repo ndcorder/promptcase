@@ -5,6 +5,7 @@
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
   import FolderContextMenu from "./FolderContextMenu.svelte";
+  import MoveToFolderDialog from "./MoveToFolderDialog.svelte";
   import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts, dragState, clearSelection, toggleSelection, selectRange, selectAll, selectedPaths, filteredEntries } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
@@ -184,6 +185,27 @@
     } catch (err) {
       console.error("Failed to add tag:", err);
       addToast("Failed to add tag", "error");
+    }
+  }
+
+  async function handleMoveToConfirm(destination: string) {
+    moveToDialogVisible = false;
+    try {
+      if (moveToTargetPaths.length === 1) {
+        const filename = moveToTargetPaths[0].split("/").pop()!;
+        const newPath = destination ? `${destination}/${filename}` : filename;
+        await api.moveFile(moveToTargetPaths[0], newPath);
+        closeTab(moveToTargetPaths[0]);
+      } else {
+        await api.moveFiles(moveToTargetPaths, destination);
+        for (const p of moveToTargetPaths) closeTab(p);
+      }
+      clearSelection();
+      await loadFiles();
+      addToast(`Moved ${moveToTargetPaths.length} item(s)`, "success", 2000);
+    } catch (err) {
+      console.error("Failed to move:", err);
+      addToast("Failed to move files", "error");
     }
   }
 
@@ -447,6 +469,13 @@
     onClose={() => { folderContextMenu = null; }}
   />
 {/if}
+
+<MoveToFolderDialog
+  visible={moveToDialogVisible}
+  paths={moveToTargetPaths}
+  onConfirm={handleMoveToConfirm}
+  onCancel={() => { moveToDialogVisible = false; }}
+/>
 
 <style>
   .sidebar {
