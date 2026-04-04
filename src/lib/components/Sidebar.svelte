@@ -8,6 +8,7 @@
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
+  import { showTagManager } from "../stores/layout";
 
   async function handleDragStart(e: MouseEvent) {
     if (!isTauri()) return;
@@ -133,6 +134,12 @@
           <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         New Prompt
+      </button>
+      <button class="action-btn" onclick={() => showTagManager.set(true)} title="Manage Tags">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M1 3h10M1 6h7M1 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Tags
       </button>
     </div>
   </div>
