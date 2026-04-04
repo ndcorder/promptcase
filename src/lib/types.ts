@@ -104,6 +104,11 @@ export interface RepoConfig {
   keybindings: Record<string, string>;
 }
 
+export interface TagInfo {
+  name: string;
+  count: number;
+}
+
 export interface RepoStatus {
   initialized: boolean;
   clean: boolean;
