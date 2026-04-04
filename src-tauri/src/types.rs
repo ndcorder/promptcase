@@ -250,3 +250,53 @@ pub struct RepoStatus {
     pub total_files: usize,
     pub repo_path: String,
 }
+
+// ---------------------------------------------------------------------------
+// LLM types
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmResponse {
+    pub content: String,
+    pub model: String,
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RunPromptRequest {
+    pub provider: String,
+    pub model: String,
+    pub messages: Vec<LlmMessage>,
+    pub temperature: f32,
+    pub max_tokens: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptChunkPayload {
+    pub text: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptDonePayload {
+    pub model: String,
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct PromptErrorPayload {
+    pub error: String,
+}

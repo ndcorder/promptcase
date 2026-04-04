@@ -9,6 +9,8 @@ pub enum AppError {
     #[error("{0}")]
     Yaml(#[from] serde_yaml::Error),
     #[error("{0}")]
+    Reqwest(#[from] reqwest::Error),
+    #[error("{0}")]
     Custom(String),
 }
 

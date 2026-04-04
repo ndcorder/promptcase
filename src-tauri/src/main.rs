@@ -6,6 +6,7 @@ mod error;
 mod file_ops;
 mod frontmatter;
 mod git_ops;
+mod llm;
 mod linter;
 mod search;
 mod state;
@@ -42,6 +43,11 @@ fn main() {
             commands::update_config,
             commands::generate_commit_message,
             commands::commit_file,
+            commands::get_api_key,
+            commands::set_api_key,
+            commands::delete_api_key,
+            commands::run_prompt,
+            commands::cancel_prompt,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
