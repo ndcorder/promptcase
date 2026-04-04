@@ -4,10 +4,12 @@
   import InputDialog from "./InputDialog.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
-  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery } from "../stores/files";
+  import FolderContextMenu from "./FolderContextMenu.svelte";
+  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
+  import { addToast } from "../stores/toast";
 
   async function handleDragStart(e: MouseEvent) {
     if (!isTauri()) return;
@@ -28,12 +30,13 @@
   let dialogVisible = $state(false);
   let dialogTitle = $state("");
   let dialogDefault = $state("");
-  let dialogMode: "create" | "rename" = "create";
+  let dialogMode: "create" | "rename" | "create-folder" | "rename-folder" | "create-in-folder" = "create";
 
   let deleteConfirmVisible = $state(false);
   let deleteTargetPath = $state("");
 
   let contextMenu = $state<{ path: string; x: number; y: number } | null>(null);
+  let folderContextMenu = $state<{ path: string; x: number; y: number } | null>(null);
 
   let searchValue = $state("");
 
@@ -47,6 +50,44 @@
 
   function handleFileContext(path: string, x: number, y: number) {
     contextMenu = { path, x, y };
+  }
+
+  function handleFolderContext(path: string, x: number, y: number) {
+    folderContextMenu = { path, x, y };
+  }
+
+  async function handleCreateFolder(parentPath?: string) {
+    dialogMode = "create-folder";
+    dialogTitle = "New Folder";
+    dialogDefault = "New Folder";
+    deleteTargetPath = parentPath || "";
+    dialogVisible = true;
+  }
+
+  async function handleRenameFolder(path: string) {
+    dialogMode = "rename-folder";
+    dialogTitle = "Rename Folder";
+    dialogDefault = path.split("/").pop() || "";
+    deleteTargetPath = path;
+    dialogVisible = true;
+  }
+
+  async function handleDeleteFolder(path: string) {
+    try {
+      await api.deleteFolder(path);
+      await loadFiles();
+      addToast("Folder deleted", "success", 2000);
+    } catch (err: any) {
+      addToast(err?.message || "Failed to delete folder", "error");
+    }
+  }
+
+  function handleNewPromptInFolder(folderPath: string) {
+    dialogMode = "create-in-folder";
+    dialogTitle = "New Prompt";
+    dialogDefault = "New Prompt";
+    deleteTargetPath = folderPath;
+    dialogVisible = true;
   }
 
   function handleNewPrompt() {
@@ -102,24 +143,43 @@
     if (creating) return;
     creating = true;
     try {
-      if (dialogMode === "rename") {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+      if (dialogMode === "create-folder") {
+        const folderPath = deleteTargetPath ? `${deleteTargetPath}/${slug}` : slug;
+        await api.createFolder(folderPath);
+        await loadFiles();
+        addToast("Folder created", "success", 2000);
+      } else if (dialogMode === "rename-folder") {
+        const oldPath = deleteTargetPath;
+        const parentDir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/")) : "";
+        const newPath = parentDir ? `${parentDir}/${slug}` : slug;
+        await api.renameFolder(oldPath, newPath);
+        await loadFiles();
+        addToast("Folder renamed", "success", 2000);
+      } else if (dialogMode === "create-in-folder") {
+        const filePath = `${deleteTargetPath}/${slug}.md`;
+        const file = await api.createFile(filePath, name, "prompt");
+        await loadFiles();
+        openFile(file.path);
+      } else if (dialogMode === "rename") {
         const oldPath = deleteTargetPath;
         const dir = oldPath.includes("/") ? oldPath.substring(0, oldPath.lastIndexOf("/") + 1) : "";
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-        const newPath = dir + slug;
+        const newPath = dir + slug + ".md";
         await api.moveFile(oldPath, newPath);
         await api.writeFile(newPath, { title: name });
         closeTab(oldPath);
         await loadFiles();
         openFile(newPath);
       } else {
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
-        const file = await api.createFile(slug, name, "prompt");
+        // "create" mode - default new prompt at root
+        const file = await api.createFile(slug + ".md", name, "prompt");
         await loadFiles();
         openFile(file.path);
       }
     } catch (err) {
       console.error(`Failed to ${dialogMode}:`, err);
+      addToast(`Failed to ${dialogMode}`, "error");
     } finally {
       creating = false;
     }
@@ -139,6 +199,12 @@
           <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         New Prompt
+      </button>
+      <button class="action-btn" onclick={() => handleCreateFolder()} title="New Folder">
+        <svg width="12" height="12" viewBox="0 0 14 12" fill="none">
+          <path d="M1 2.5A1.5 1.5 0 012.5 1H5l1.5 2H11.5A1.5 1.5 0 0113 4.5v5A1.5 1.5 0 0111.5 11h-9A1.5 1.5 0 011 9.5z" stroke="currentColor" stroke-width="1.2"/>
+          <path d="M7 5.5v3M5.5 7h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
       </button>
     </div>
   </div>
@@ -185,6 +251,7 @@
         node={$folderTree}
         onFileSelect={handleFileSelect}
         onFileContext={handleFileContext}
+        onFolderContext={handleFolderContext}
         selectedPath={$selectedPath}
       />
     {/if}
@@ -218,6 +285,19 @@
     onDuplicate={() => handleDuplicate(contextMenu!.path)}
     onDelete={() => handleDeleteRequest(contextMenu!.path)}
     onClose={() => { contextMenu = null; }}
+  />
+{/if}
+
+{#if folderContextMenu}
+  <FolderContextMenu
+    x={folderContextMenu.x}
+    y={folderContextMenu.y}
+    isEmpty={($folderFileCounts.get(folderContextMenu.path) ?? 0) === 0}
+    onNewPromptHere={() => handleNewPromptInFolder(folderContextMenu!.path)}
+    onNewFolderInside={() => handleCreateFolder(folderContextMenu!.path)}
+    onRename={() => handleRenameFolder(folderContextMenu!.path)}
+    onDelete={() => handleDeleteFolder(folderContextMenu!.path)}
+    onClose={() => { folderContextMenu = null; }}
   />
 {/if}
 

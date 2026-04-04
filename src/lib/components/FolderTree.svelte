@@ -1,16 +1,17 @@
 <script lang="ts">
   import type { FolderNode, PromptEntry } from "../types";
-  import { expandedFolders } from "../stores/files";
+  import { expandedFolders, folderFileCounts } from "../stores/files";
 
   interface Props {
     node: FolderNode;
     depth?: number;
     onFileSelect: (path: string) => void;
     onFileContext?: (path: string, x: number, y: number) => void;
+    onFolderContext?: (path: string, x: number, y: number) => void;
     selectedPath: string | null;
   }
 
-  let { node, depth = 0, onFileSelect, onFileContext, selectedPath }: Props = $props();
+  let { node, depth = 0, onFileSelect, onFileContext, onFolderContext, selectedPath }: Props = $props();
 
   $effect(() => {
     if (node.name && node.path) {
@@ -43,11 +44,13 @@
     class="folder-row"
     style="padding-left: {depth * 16 + 8}px"
     onclick={toggleExpand}
+    oncontextmenu={(e) => { e.preventDefault(); onFolderContext?.(node.path, e.clientX, e.clientY); }}
   >
     <svg class="chevron" class:expanded width="8" height="8" viewBox="0 0 8 8">
       <path d="M2 1l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     <span class="folder-name">{node.name}</span>
+    <span class="folder-count">{$folderFileCounts.get(node.path) ?? 0}</span>
   </button>
 {/if}
 
@@ -58,6 +61,7 @@
       depth={node.name ? depth + 1 : depth}
       {onFileSelect}
       {onFileContext}
+      {onFolderContext}
       {selectedPath}
     />
   {/each}
@@ -125,6 +129,15 @@
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.03em;
+  }
+  .folder-count {
+    color: var(--text-tertiary);
+    font-size: var(--font-size-xs, 11px);
+    font-weight: var(--font-weight-normal, 400);
+    margin-left: auto;
+    padding-right: var(--space-2);
+    text-transform: none;
+    letter-spacing: normal;
   }
   .file-icon {
     color: var(--text-tertiary);
