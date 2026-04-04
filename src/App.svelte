@@ -28,6 +28,7 @@
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
   import { sidebarPosition } from "$lib/stores/layout";
+  import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
@@ -38,6 +39,8 @@
 
   onMount(async () => {
     await loadFiles();
+    await initTestingListeners();
+    return () => destroyTestingListeners();
   });
 
   // Register keybinding actions

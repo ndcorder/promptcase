@@ -47,6 +47,7 @@ pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         config,
         search: std::sync::Mutex::new(search),
         repo: std::sync::Mutex::new(repo),
+        prompt_cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
     });
 
     Ok(())
@@ -450,5 +451,54 @@ pub fn commit_file(
         .map_err(|_| AppError::Custom("Internal lock error".into()))?;
     let full_message = format!("{} {}", state.config.commit_prefix, message);
     crate::git_ops::commit_with_message(&*repo, &[path.as_str()], &full_message)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+// ---------------------------------------------------------------------------
+// LLM / API key management
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn get_api_key(provider: String) -> Result<Option<String>, AppError> {
+    crate::llm::get_api_key(&provider)
+}
+
+#[tauri::command]
+pub fn set_api_key(provider: String, key: String) -> Result<serde_json::Value, AppError> {
+    crate::llm::set_api_key(&provider, &key)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn delete_api_key(provider: String) -> Result<serde_json::Value, AppError> {
+    crate::llm::delete_api_key(&provider)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command(async)]
+pub async fn run_prompt(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    request: crate::types::RunPromptRequest,
+) -> Result<serde_json::Value, AppError> {
+    // Reset cancellation flag
+    state
+        .prompt_cancelled
+        .store(false, std::sync::atomic::Ordering::Relaxed);
+
+    let cancelled = state.prompt_cancelled.clone();
+
+    tauri::async_runtime::spawn(async move {
+        crate::llm::run_prompt_stream(app, request, cancelled).await;
+    });
+
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn cancel_prompt(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, AppError> {
+    state
+        .prompt_cancelled
+        .store(true, std::sync::atomic::Ordering::Relaxed);
     Ok(serde_json::json!({ "ok": true }))
 }

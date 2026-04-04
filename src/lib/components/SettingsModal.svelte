@@ -13,7 +13,7 @@
 
   let { onclose }: Props = $props();
 
-  let activeTab = $state<"general" | "editor" | "appearance">("general");
+  let activeTab = $state<"general" | "editor" | "appearance" | "apikeys">("general");
   let config = $state<RepoConfig | null>(null);
   let repoPath = $state<string>("");
 
@@ -71,11 +71,64 @@
       .replace(/\+/g, "");
   }
 
-  const tabs: Array<{ id: "general" | "editor" | "appearance"; label: string }> = [
+  const tabs: Array<{ id: "general" | "editor" | "appearance" | "apikeys"; label: string }> = [
     { id: "general", label: "General" },
     { id: "editor", label: "Editor" },
     { id: "appearance", label: "Appearance" },
+    { id: "apikeys", label: "API Keys" },
   ];
+
+  // API key state
+  let anthropicKey = $state("");
+  let openaiKey = $state("");
+  let anthropicHasKey = $state(false);
+  let openaiHasKey = $state(false);
+  let keysLoaded = $state(false);
+
+  async function loadApiKeys() {
+    if (keysLoaded) return;
+    keysLoaded = true;
+    try {
+      const aKey = await api.getApiKey("anthropic");
+      if (aKey) {
+        anthropicHasKey = true;
+        anthropicKey = "\u2022".repeat(12);
+      }
+    } catch { /* ignore */ }
+    try {
+      const oKey = await api.getApiKey("openai");
+      if (oKey) {
+        openaiHasKey = true;
+        openaiKey = "\u2022".repeat(12);
+      }
+    } catch { /* ignore */ }
+  }
+
+  async function saveApiKey(provider: string, key: string) {
+    if (!key || key === "\u2022".repeat(12)) return;
+    try {
+      await api.setApiKey(provider, key);
+      if (provider === "anthropic") anthropicHasKey = true;
+      else openaiHasKey = true;
+    } catch (err) {
+      console.warn("Failed to save API key:", err);
+    }
+  }
+
+  async function removeApiKey(provider: string) {
+    try {
+      await api.deleteApiKey(provider);
+      if (provider === "anthropic") {
+        anthropicKey = "";
+        anthropicHasKey = false;
+      } else {
+        openaiKey = "";
+        openaiHasKey = false;
+      }
+    } catch (err) {
+      console.warn("Failed to delete API key:", err);
+    }
+  }
 </script>
 
 <div
@@ -355,6 +408,69 @@
               </div>
             {/each}
           </div>
+
+        {:else if activeTab === "apikeys"}
+          {#await loadApiKeys() then}
+          <div class="setting-row">
+            <div class="setting-label">
+              <span class="label-text">Anthropic API key</span>
+              <span class="label-hint">Used for Claude models</span>
+            </div>
+            <div class="setting-control api-key-control">
+              <input
+                type="password"
+                class="text-input"
+                placeholder="sk-ant-..."
+                bind:value={anthropicKey}
+                onfocus={() => { if (anthropicHasKey) anthropicKey = ""; }}
+                onblur={() => { if (!anthropicKey && anthropicHasKey) anthropicKey = "\u2022".repeat(12); }}
+              />
+              <button
+                class="key-action-btn save-btn"
+                onclick={() => saveApiKey("anthropic", anthropicKey)}
+                disabled={!anthropicKey || anthropicKey === "\u2022".repeat(12)}
+              >Save</button>
+              {#if anthropicHasKey}
+                <button
+                  class="key-action-btn remove-btn"
+                  onclick={() => removeApiKey("anthropic")}
+                >Remove</button>
+              {/if}
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-label">
+              <span class="label-text">OpenAI API key</span>
+              <span class="label-hint">Used for GPT models</span>
+            </div>
+            <div class="setting-control api-key-control">
+              <input
+                type="password"
+                class="text-input"
+                placeholder="sk-..."
+                bind:value={openaiKey}
+                onfocus={() => { if (openaiHasKey) openaiKey = ""; }}
+                onblur={() => { if (!openaiKey && openaiHasKey) openaiKey = "\u2022".repeat(12); }}
+              />
+              <button
+                class="key-action-btn save-btn"
+                onclick={() => saveApiKey("openai", openaiKey)}
+                disabled={!openaiKey || openaiKey === "\u2022".repeat(12)}
+              >Save</button>
+              {#if openaiHasKey}
+                <button
+                  class="key-action-btn remove-btn"
+                  onclick={() => removeApiKey("openai")}
+                >Remove</button>
+              {/if}
+            </div>
+          </div>
+
+          <div class="api-key-note">
+            <p>API keys are stored securely in your system keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service).</p>
+          </div>
+          {/await}
         {/if}
       {/if}
     </div>
@@ -646,5 +762,47 @@
     padding: var(--space-1) var(--space-2);
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-primary);
+  }
+
+  .api-key-control {
+    display: flex;
+    gap: var(--space-2);
+    align-items: center;
+  }
+  .key-action-btn {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    border: none;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+  .save-btn {
+    background: var(--accent);
+    color: white;
+  }
+  .save-btn:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+  .save-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .remove-btn {
+    background: var(--bg-quaternary);
+    color: var(--text-secondary);
+  }
+  .remove-btn:hover {
+    background: var(--error, #e74c3c);
+    color: white;
+  }
+  .api-key-note {
+    padding: var(--space-3) 0;
+  }
+  .api-key-note p {
+    font-size: var(--font-size-xs);
+    color: var(--text-tertiary);
+    line-height: 1.5;
   }
 </style>

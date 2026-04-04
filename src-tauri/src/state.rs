@@ -1,5 +1,6 @@
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
 
 use git2::Repository;
 
@@ -11,4 +12,5 @@ pub struct AppState {
     pub config: RepoConfig,
     pub search: Mutex<PromptSearch>,
     pub repo: Mutex<Repository>,
+    pub prompt_cancelled: Arc<AtomicBool>,
 }
