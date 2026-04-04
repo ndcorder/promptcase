@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { FolderNode, PromptEntry } from "../types";
-  import { expandedFolders, folderFileCounts, dragState, selectedPaths } from "../stores/files";
+  import { expandedFolders, folderFileCounts, dragState, selectedPaths, saveCustomOrder, loadFiles } from "../stores/files";
   import { get } from "svelte/store";
 
   interface Props {
@@ -17,6 +17,7 @@
   let { node, depth = 0, onFileSelect, onFileContext, onFolderContext, onFileDrop, onFolderDrop, selectedPath }: Props = $props();
 
   let dropTarget = $state(false);
+  let insertTarget = $state<{ path: string; position: "above" | "below" } | null>(null);
 
   $effect(() => {
     if (node.name && node.path) {
@@ -106,6 +107,8 @@
     <button
       class="file-row"
       class:selected={selectedPath === file.path || $selectedPaths.has(file.path)}
+      class:insert-above={insertTarget?.path === file.path && insertTarget?.position === "above"}
+      class:insert-below={insertTarget?.path === file.path && insertTarget?.position === "below"}
       style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 8}px"
       draggable="true"
       onclick={() => onFileSelect(file.path)}
@@ -120,6 +123,42 @@
         e.dataTransfer!.setData("text/plain", paths.join("\n"));
       }}
       ondragend={() => { dragState.set(null); }}
+      ondragover={(e) => {
+        const ds = get(dragState);
+        if (!ds || ds.type === "folder") return;
+        const sourceFolder = ds.paths[0].includes("/") ? ds.paths[0].substring(0, ds.paths[0].lastIndexOf("/")) : "";
+        const thisFolder = file.path.includes("/") ? file.path.substring(0, file.path.lastIndexOf("/")) : "";
+        if (sourceFolder !== thisFolder) return;
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = "move";
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        insertTarget = { path: file.path, position: e.clientY < midY ? "above" : "below" };
+      }}
+      ondragleave={() => { if (insertTarget?.path === file.path) insertTarget = null; }}
+      ondrop={(e) => {
+        const ds = get(dragState);
+        if (!ds) return;
+        const sourceFolder = ds.paths[0].includes("/") ? ds.paths[0].substring(0, ds.paths[0].lastIndexOf("/")) : "";
+        const thisFolder = file.path.includes("/") ? file.path.substring(0, file.path.lastIndexOf("/")) : "";
+        if (sourceFolder !== thisFolder) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+
+        const currentOrder = node.files.map((f) => f.path);
+        const draggedPath = ds.paths[0];
+        const filtered = currentOrder.filter((p) => p !== draggedPath);
+        const targetIdx = filtered.indexOf(file.path);
+        const insertIdx = insertTarget?.position === "above" ? targetIdx : targetIdx + 1;
+        filtered.splice(insertIdx, 0, draggedPath);
+        saveCustomOrder(node.path, filtered);
+
+        insertTarget = null;
+        dragState.set(null);
+        loadFiles();
+      }}
     >
       <svg class="file-icon" width="14" height="14" viewBox="0 0 16 16">
         <path d="M4 1.5h5.5L13 5v9.5a1 1 0 01-1 1H4a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.2"/>
@@ -202,5 +241,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .file-row.insert-above {
+    box-shadow: 0 -2px 0 0 var(--accent);
+  }
+  .file-row.insert-below {
+    box-shadow: 0 2px 0 0 var(--accent);
   }
 </style>
