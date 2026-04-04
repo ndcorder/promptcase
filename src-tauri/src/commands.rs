@@ -374,12 +374,14 @@ pub fn export_file_clipboard(
     }
 }
 
-/// Walk a folder and create a zip archive of all .md files. Returns the bytes
-/// as a base64-encoded string so the frontend can save it via a dialog.
+/// Walk a folder and create a zip archive of all .md files.
+/// If `output_path` is provided, writes the zip to that absolute path on disk.
+/// Otherwise returns the raw bytes.
 #[tauri::command]
 pub fn export_folder_zip(
     state: tauri::State<'_, AppState>,
     folder: String,
+    output_path: Option<String>,
 ) -> Result<Vec<u8>, AppError> {
     use walkdir::WalkDir;
     use zip::write::SimpleFileOptions;
@@ -426,7 +428,13 @@ pub fn export_folder_zip(
 
         zw.finish().map_err(|e| AppError::Custom(format!("zip finish: {e}")))?;
     }
-    Ok(buf)
+
+    if let Some(out) = output_path {
+        std::fs::write(&out, &buf)?;
+        Ok(vec![])
+    } else {
+        Ok(buf)
+    }
 }
 
 // ---------------------------------------------------------------------------

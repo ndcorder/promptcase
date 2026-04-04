@@ -4,6 +4,7 @@
   import InputDialog from "./InputDialog.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
+  import FolderContextMenu from "./FolderContextMenu.svelte";
   import { folderTree, loadFiles, promptEntries, filesLoading } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
@@ -34,6 +35,11 @@
   let deleteTargetPath = $state("");
 
   let contextMenu = $state<{ path: string; x: number; y: number } | null>(null);
+  let folderContextMenu = $state<{ folderPath: string; x: number; y: number } | null>(null);
+
+  function handleFolderContext(folderPath: string, x: number, y: number) {
+    folderContextMenu = { folderPath, x, y };
+  }
 
   function handleFileSelect(path: string) {
     openFile(path);
@@ -158,6 +164,7 @@
         node={$folderTree}
         onFileSelect={handleFileSelect}
         onFileContext={handleFileContext}
+        onFolderContext={handleFolderContext}
         selectedPath={$selectedPath}
       />
     {/if}
@@ -187,10 +194,20 @@
   <FileContextMenu
     x={contextMenu.x}
     y={contextMenu.y}
+    path={contextMenu.path}
     onRename={() => handleRename(contextMenu!.path)}
     onDuplicate={() => handleDuplicate(contextMenu!.path)}
     onDelete={() => handleDeleteRequest(contextMenu!.path)}
     onClose={() => { contextMenu = null; }}
+  />
+{/if}
+
+{#if folderContextMenu}
+  <FolderContextMenu
+    x={folderContextMenu.x}
+    y={folderContextMenu.y}
+    folderPath={folderContextMenu.folderPath}
+    onClose={() => { folderContextMenu = null; }}
   />
 {/if}
 

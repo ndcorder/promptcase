@@ -92,8 +92,8 @@ export const api = {
   // Export
   exportFileClipboard: (path: string, format: "raw" | "body" | "resolved") =>
     call<string>("export_file_clipboard", { path, format }),
-  exportFolderZip: (folder: string) =>
-    call<number[]>("export_folder_zip", { folder }),
+  exportFolderZip: (folder: string, outputPath?: string) =>
+    call<number[]>("export_folder_zip", { folder, outputPath: outputPath ?? null }),
 
   // Import
   importFiles: (paths: string[], destination: string) =>

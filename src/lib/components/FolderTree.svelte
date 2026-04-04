@@ -7,10 +7,11 @@
     depth?: number;
     onFileSelect: (path: string) => void;
     onFileContext?: (path: string, x: number, y: number) => void;
+    onFolderContext?: (folderPath: string, x: number, y: number) => void;
     selectedPath: string | null;
   }
 
-  let { node, depth = 0, onFileSelect, onFileContext, selectedPath }: Props = $props();
+  let { node, depth = 0, onFileSelect, onFileContext, onFolderContext, selectedPath }: Props = $props();
 
   $effect(() => {
     if (node.name && node.path) {
@@ -43,6 +44,7 @@
     class="folder-row"
     style="padding-left: {depth * 16 + 8}px"
     onclick={toggleExpand}
+    oncontextmenu={(e) => { e.preventDefault(); onFolderContext?.(node.path, e.clientX, e.clientY); }}
   >
     <svg class="chevron" class:expanded width="8" height="8" viewBox="0 0 8 8">
       <path d="M2 1l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -58,6 +60,7 @@
       depth={node.name ? depth + 1 : depth}
       {onFileSelect}
       {onFileContext}
+      {onFolderContext}
       {selectedPath}
     />
   {/each}
