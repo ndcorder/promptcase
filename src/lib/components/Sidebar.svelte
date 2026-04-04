@@ -5,7 +5,7 @@
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
   import FolderContextMenu from "./FolderContextMenu.svelte";
-  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts, dragState, clearSelection } from "../stores/files";
+  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts, dragState, clearSelection, toggleSelection, selectRange, selectAll, selectedPaths, filteredEntries } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
@@ -24,7 +24,6 @@
       getCurrentWindow().startDragging();
     }
   }
-  import { get } from "svelte/store";
 
   let creating = $state(false);
 
@@ -45,7 +44,22 @@
     searchQuery.set(searchValue);
   });
 
-  function handleFileSelect(path: string) {
+  let lastClickedPath = $state<string>("");
+
+  function handleFileSelect(path: string, event?: MouseEvent) {
+    if (event?.metaKey || event?.ctrlKey) {
+      // Cmd/Ctrl+Click: toggle selection without opening
+      toggleSelection(path, true);
+      return;
+    }
+    if (event?.shiftKey && lastClickedPath) {
+      // Shift+Click: range select
+      selectRange(lastClickedPath, path, get(filteredEntries));
+      return;
+    }
+    // Normal click: open file, clear multi-selection
+    clearSelection();
+    lastClickedPath = path;
     openFile(path);
   }
 
@@ -125,14 +139,51 @@
     deleteConfirmVisible = true;
   }
 
+  function handleBulkDeleteRequest() {
+    deleteTargetPath = "";
+    deleteConfirmVisible = true;
+  }
+
   async function handleDeleteConfirm() {
     deleteConfirmVisible = false;
     try {
-      await api.deleteFile(deleteTargetPath);
-      closeTab(deleteTargetPath);
+      if ($selectedPaths.size > 1) {
+        for (const path of $selectedPaths) {
+          await api.deleteFile(path);
+          closeTab(path);
+        }
+        clearSelection();
+      } else {
+        await api.deleteFile(deleteTargetPath);
+        closeTab(deleteTargetPath);
+      }
       await loadFiles();
     } catch (err) {
       console.error("Failed to delete:", err);
+      addToast("Failed to delete", "error");
+    }
+  }
+
+  let bulkTagDialogVisible = $state(false);
+  let moveToDialogVisible = $state(false);
+  let moveToTargetPaths = $state<string[]>([]);
+
+  async function handleBulkAddTag(tag: string) {
+    bulkTagDialogVisible = false;
+    const t = tag.trim().toLowerCase();
+    if (!t) return;
+    try {
+      for (const path of $selectedPaths) {
+        const file = await api.readFile(path);
+        if (!file.frontmatter.tags.includes(t)) {
+          await api.writeFile(path, { tags: [...file.frontmatter.tags, t] });
+        }
+      }
+      await loadFiles();
+      addToast(`Added tag "${t}" to ${$selectedPaths.size} files`, "success", 2000);
+    } catch (err) {
+      console.error("Failed to add tag:", err);
+      addToast("Failed to add tag", "error");
     }
   }
 
@@ -228,6 +279,14 @@
   }
 </script>
 
+<svelte:window onkeydown={(e) => {
+  if (e.key === "Escape") clearSelection();
+  if ((e.metaKey || e.ctrlKey) && e.key === "a" && document.activeElement?.closest(".sidebar")) {
+    e.preventDefault();
+    selectAll();
+  }
+}} />
+
 <aside class="sidebar">
   <div class="sidebar-header" data-tauri-drag-region onmousedown={handleDragStart}>
     <h2 data-tauri-drag-region>Promptcase</h2>
@@ -245,6 +304,9 @@
         </svg>
       </button>
     </div>
+    {#if $selectedPaths.size > 1}
+      <div class="selection-badge">{$selectedPaths.size} selected</div>
+    {/if}
   </div>
 
   <TagFilter />
@@ -329,7 +391,9 @@
 <ConfirmDialog
   visible={deleteConfirmVisible}
   title="Delete File"
-  message="This will permanently delete this file. Are you sure?"
+  message={$selectedPaths.size > 1
+    ? `This will permanently delete ${$selectedPaths.size} files. Are you sure?`
+    : `This will permanently delete "${deleteTargetPath.split("/").pop()}". Are you sure?`}
   confirmLabel="Delete"
   cancelLabel="Cancel"
   onConfirm={handleDeleteConfirm}
@@ -340,12 +404,36 @@
   <FileContextMenu
     x={contextMenu.x}
     y={contextMenu.y}
+    bulkCount={$selectedPaths.size > 1 ? $selectedPaths.size : 1}
     onRename={() => handleRename(contextMenu!.path)}
     onDuplicate={() => handleDuplicate(contextMenu!.path)}
-    onDelete={() => handleDeleteRequest(contextMenu!.path)}
+    onDelete={() => {
+      if ($selectedPaths.size > 1) {
+        handleBulkDeleteRequest();
+      } else {
+        handleDeleteRequest(contextMenu!.path);
+      }
+    }}
+    onMoveTo={() => {
+      const paths = $selectedPaths.size > 1 ? [...$selectedPaths] : [contextMenu!.path];
+      moveToTargetPaths = paths;
+      moveToDialogVisible = true;
+    }}
+    onAddTag={() => {
+      bulkTagDialogVisible = true;
+    }}
     onClose={() => { contextMenu = null; }}
   />
 {/if}
+
+<InputDialog
+  visible={bulkTagDialogVisible}
+  title="Add Tag to All"
+  placeholder="Enter tag name..."
+  defaultValue=""
+  onConfirm={handleBulkAddTag}
+  onCancel={() => { bulkTagDialogVisible = false; }}
+/>
 
 {#if folderContextMenu}
   <FolderContextMenu
@@ -386,6 +474,11 @@
     display: flex;
     gap: var(--space-1);
     margin-top: var(--space-2);
+  }
+  .selection-badge {
+    font-size: var(--font-size-xs, 11px);
+    color: var(--accent);
+    padding: var(--space-1) var(--space-2);
   }
   .action-btn {
     flex: 1;

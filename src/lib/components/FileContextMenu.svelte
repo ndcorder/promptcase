@@ -2,13 +2,16 @@
   interface Props {
     x: number;
     y: number;
+    bulkCount: number;
     onRename: () => void;
     onDuplicate: () => void;
     onDelete: () => void;
+    onMoveTo: () => void;
+    onAddTag: () => void;
     onClose: () => void;
   }
 
-  let { x, y, onRename, onDuplicate, onDelete, onClose }: Props = $props();
+  let { x, y, bulkCount, onRename, onDuplicate, onDelete, onMoveTo, onAddTag, onClose }: Props = $props();
 
   function handleAction(fn: () => void) {
     fn();
@@ -19,10 +22,18 @@
 <svelte:window onclick={onClose} />
 
 <div class="context-menu" style="left: {x}px; top: {y}px" onclick={(e) => e.stopPropagation()}>
-  <button class="menu-item" onclick={() => handleAction(onRename)}>Rename</button>
-  <button class="menu-item" onclick={() => handleAction(onDuplicate)}>Duplicate</button>
+  {#if bulkCount <= 1}
+    <button class="menu-item" onclick={() => handleAction(onRename)}>Rename</button>
+    <button class="menu-item" onclick={() => handleAction(onDuplicate)}>Duplicate</button>
+  {/if}
+  <button class="menu-item" onclick={() => handleAction(onMoveTo)}>Move to...</button>
+  {#if bulkCount > 1}
+    <button class="menu-item" onclick={() => handleAction(onAddTag)}>Add Tag to All</button>
+  {/if}
   <div class="separator"></div>
-  <button class="menu-item danger" onclick={() => handleAction(onDelete)}>Delete</button>
+  <button class="menu-item danger" onclick={() => handleAction(onDelete)}>
+    {bulkCount > 1 ? `Delete ${bulkCount} items` : "Delete"}
+  </button>
 </div>
 
 <style>

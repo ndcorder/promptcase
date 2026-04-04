@@ -6,7 +6,7 @@
   interface Props {
     node: FolderNode;
     depth?: number;
-    onFileSelect: (path: string) => void;
+    onFileSelect: (path: string, event?: MouseEvent) => void;
     onFileContext?: (path: string, x: number, y: number) => void;
     onFolderContext?: (path: string, x: number, y: number) => void;
     onFileDrop?: (sourcePaths: string[], destinationFolder: string) => void;
@@ -111,7 +111,7 @@
       class:insert-below={insertTarget?.path === file.path && insertTarget?.position === "below"}
       style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 8}px"
       draggable="true"
-      onclick={() => onFileSelect(file.path)}
+      onclick={(e) => onFileSelect(file.path, e)}
       oncontextmenu={(e) => { e.preventDefault(); onFileContext?.(file.path, e.clientX, e.clientY); }}
       ondragstart={(e) => {
         const sel = get(selectedPaths);
