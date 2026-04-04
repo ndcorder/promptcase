@@ -12,6 +12,7 @@
   import ResolvedPreview from "./lib/components/ResolvedPreview.svelte";
   import ToastContainer from "./lib/components/ToastContainer.svelte";
   import SettingsModal from "./lib/components/SettingsModal.svelte";
+  import CompareView from "./lib/components/CompareView.svelte";
   import {
     showSidebar,
     showInspector,
@@ -88,6 +89,7 @@
           </div>
         </div>
       {/if}
+      <CompareView />
     </div>
 
     <div class="bottom-panel" class:collapsed={!$showBottomPanel}>
@@ -162,6 +164,7 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
   }
   .editor-split {
     flex: 1;

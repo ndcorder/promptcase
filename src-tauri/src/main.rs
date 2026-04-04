@@ -34,6 +34,7 @@ fn main() {
             commands::move_files,
             commands::git_log,
             commands::git_diff,
+            commands::git_show_file,
             commands::git_restore,
             commands::git_status,
             commands::resolve_template,

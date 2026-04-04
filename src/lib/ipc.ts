@@ -69,6 +69,8 @@ export const api = {
     call<DiffResult>("git_diff", { path, commit_a: commitA, commit_b: commitB }),
   gitRestore: (path: string, commit: string) =>
     call<string | null>("git_restore", { path, commit }),
+  gitShowFile: (path: string, commit: string) =>
+    call<string>("git_show_file", { path, commit }),
   gitStatus: () => call<RepoStatus>("git_status"),
 
   // Template operations
