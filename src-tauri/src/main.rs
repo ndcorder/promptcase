@@ -21,6 +21,10 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::list_files,
+            commands::list_tags,
+            commands::rename_tag,
+            commands::delete_tag,
+            commands::merge_tags,
             commands::read_file,
             commands::write_file,
             commands::create_file,

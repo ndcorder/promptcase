@@ -244,6 +244,13 @@ impl Default for RepoConfig {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct TagInfo {
+    pub name: String,
+    pub count: usize,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RepoStatus {
     pub initialized: bool,
     pub clean: bool,

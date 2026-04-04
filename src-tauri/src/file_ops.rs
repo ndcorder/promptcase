@@ -5,10 +5,12 @@ use chrono::Utc;
 use git2::Repository;
 use walkdir::WalkDir;
 
+use std::collections::HashMap;
+
 use crate::error::AppError;
 use crate::frontmatter::{generate_id, parse_prompt_file, serialize_prompt_file};
 use crate::git_ops::auto_commit;
-use crate::types::{PromptEntry, PromptFile, PromptFrontmatter, RepoConfig};
+use crate::types::{PromptEntry, PromptFile, PromptFrontmatter, RepoConfig, TagInfo};
 
 /// Validate and resolve a file path within the repo root.
 /// Rejects any path containing `..` or escaping the repo boundary.
@@ -277,6 +279,169 @@ starred_versions: []
 
 "#
     )
+}
+
+/// Aggregate all tags across every prompt file, returning `TagInfo` with counts.
+pub fn list_tags(repo_root: &Path) -> Result<Vec<TagInfo>, AppError> {
+    let entries = list_all(repo_root)?;
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for entry in &entries {
+        for tag in &entry.frontmatter.tags {
+            *counts.entry(tag.clone()).or_insert(0) += 1;
+        }
+    }
+    let mut tags: Vec<TagInfo> = counts
+        .into_iter()
+        .map(|(name, count)| TagInfo { name, count })
+        .collect();
+    tags.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(tags)
+}
+
+/// Rename a tag across all prompt files that contain it.
+/// Performs a batch write and a single auto-commit.
+pub fn rename_tag(
+    repo_root: &Path,
+    old_name: &str,
+    new_name: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<usize, AppError> {
+    if old_name == new_name {
+        return Ok(0);
+    }
+    let entries = list_all(repo_root)?;
+    let mut changed_paths: Vec<String> = Vec::new();
+
+    for entry in &entries {
+        if entry.frontmatter.tags.contains(&old_name.to_string()) {
+            let file = read_file(repo_root, &entry.path)?;
+            let mut fm = file.frontmatter.clone();
+            fm.tags = fm
+                .tags
+                .into_iter()
+                .map(|t| if t == old_name { new_name.to_string() } else { t })
+                .collect();
+            // Deduplicate in case new_name was already present
+            fm.tags.sort();
+            fm.tags.dedup();
+            write_file(repo_root, &entry.path, &fm, &file.body)?;
+            changed_paths.push(entry.path.clone());
+        }
+    }
+
+    if config.auto_commit && !changed_paths.is_empty() {
+        if let Some(r) = repo {
+            let path_refs: Vec<&str> = changed_paths.iter().map(|s| s.as_str()).collect();
+            auto_commit(
+                r,
+                &path_refs,
+                &format!("Rename tag \"{}\" -> \"{}\"", old_name, new_name),
+                None,
+                &config.commit_prefix,
+            )?;
+        }
+    }
+
+    Ok(changed_paths.len())
+}
+
+/// Delete a tag from all prompt files that contain it.
+/// Performs a batch write and a single auto-commit.
+pub fn delete_tag(
+    repo_root: &Path,
+    tag_name: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<usize, AppError> {
+    let entries = list_all(repo_root)?;
+    let mut changed_paths: Vec<String> = Vec::new();
+
+    for entry in &entries {
+        if entry.frontmatter.tags.contains(&tag_name.to_string()) {
+            let file = read_file(repo_root, &entry.path)?;
+            let mut fm = file.frontmatter.clone();
+            fm.tags.retain(|t| t != tag_name);
+            write_file(repo_root, &entry.path, &fm, &file.body)?;
+            changed_paths.push(entry.path.clone());
+        }
+    }
+
+    if config.auto_commit && !changed_paths.is_empty() {
+        if let Some(r) = repo {
+            let path_refs: Vec<&str> = changed_paths.iter().map(|s| s.as_str()).collect();
+            auto_commit(
+                r,
+                &path_refs,
+                &format!("Delete tag \"{}\"", tag_name),
+                None,
+                &config.commit_prefix,
+            )?;
+        }
+    }
+
+    Ok(changed_paths.len())
+}
+
+/// Merge multiple source tags into a single target tag across all prompt files.
+/// Performs a batch write and a single auto-commit.
+pub fn merge_tags(
+    repo_root: &Path,
+    source_tags: &[String],
+    target_tag: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<usize, AppError> {
+    if source_tags.is_empty() {
+        return Ok(0);
+    }
+    let entries = list_all(repo_root)?;
+    let mut changed_paths: Vec<String> = Vec::new();
+
+    for entry in &entries {
+        let has_source = entry
+            .frontmatter
+            .tags
+            .iter()
+            .any(|t| source_tags.contains(t));
+        if has_source {
+            let file = read_file(repo_root, &entry.path)?;
+            let mut fm = file.frontmatter.clone();
+            // Replace any source tag with the target tag
+            fm.tags = fm
+                .tags
+                .into_iter()
+                .map(|t| {
+                    if source_tags.contains(&t) {
+                        target_tag.to_string()
+                    } else {
+                        t
+                    }
+                })
+                .collect();
+            // Deduplicate
+            fm.tags.sort();
+            fm.tags.dedup();
+            write_file(repo_root, &entry.path, &fm, &file.body)?;
+            changed_paths.push(entry.path.clone());
+        }
+    }
+
+    if config.auto_commit && !changed_paths.is_empty() {
+        if let Some(r) = repo {
+            let path_refs: Vec<&str> = changed_paths.iter().map(|s| s.as_str()).collect();
+            let source_list = source_tags.join(", ");
+            auto_commit(
+                r,
+                &path_refs,
+                &format!("Merge tags [{}] -> \"{}\"", source_list, target_tag),
+                None,
+                &config.commit_prefix,
+            )?;
+        }
+    }
+
+    Ok(changed_paths.len())
 }
 
 #[cfg(test)]
@@ -656,5 +821,196 @@ mod tests {
         let log_after = crate::git_ops::git_log(&repo, None, 10).unwrap();
         assert_eq!(log_after.len(), 1);
         assert!(log_after[0].message.contains("Create"));
+    }
+
+    // --- Tag management tests ---
+
+    fn create_tagged_file(root: &Path, path: &str, title: &str, tags: &[&str]) {
+        let tags_yaml: String = tags
+            .iter()
+            .map(|t| format!("  - {}", t))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let content = format!(
+            "---\ntitle: {}\ntags:\n{}\n---\nBody of {}\n",
+            title, tags_yaml, title
+        );
+        let full_path = root.join(path);
+        if let Some(parent) = full_path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(full_path, content).unwrap();
+    }
+
+    #[test]
+    fn test_list_tags_empty() {
+        let tmp = TempDir::new().unwrap();
+        let tags = list_tags(tmp.path()).unwrap();
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn test_list_tags_aggregates_counts() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["rust", "cli"]);
+        create_tagged_file(root, "b.md", "B", &["rust", "web"]);
+        create_tagged_file(root, "c.md", "C", &["web"]);
+
+        let tags = list_tags(root).unwrap();
+        assert_eq!(tags.len(), 3);
+
+        let rust_tag = tags.iter().find(|t| t.name == "rust").unwrap();
+        assert_eq!(rust_tag.count, 2);
+        let web_tag = tags.iter().find(|t| t.name == "web").unwrap();
+        assert_eq!(web_tag.count, 2);
+        let cli_tag = tags.iter().find(|t| t.name == "cli").unwrap();
+        assert_eq!(cli_tag.count, 1);
+    }
+
+    #[test]
+    fn test_list_tags_sorted_alphabetically() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["zebra", "alpha", "middle"]);
+
+        let tags = list_tags(root).unwrap();
+        let names: Vec<&str> = tags.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names, vec!["alpha", "middle", "zebra"]);
+    }
+
+    #[test]
+    fn test_rename_tag() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["old-name", "keep"]);
+        create_tagged_file(root, "b.md", "B", &["other"]);
+
+        let config = test_config(false);
+        let changed = rename_tag(root, "old-name", "new-name", None, &config).unwrap();
+        assert_eq!(changed, 1);
+
+        let file_a = read_file(root, "a.md").unwrap();
+        assert!(file_a.frontmatter.tags.contains(&"new-name".to_string()));
+        assert!(!file_a.frontmatter.tags.contains(&"old-name".to_string()));
+        assert!(file_a.frontmatter.tags.contains(&"keep".to_string()));
+
+        let file_b = read_file(root, "b.md").unwrap();
+        assert_eq!(file_b.frontmatter.tags, vec!["other"]);
+    }
+
+    #[test]
+    fn test_rename_tag_noop_same_name() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["tag"]);
+
+        let config = test_config(false);
+        let changed = rename_tag(root, "tag", "tag", None, &config).unwrap();
+        assert_eq!(changed, 0);
+    }
+
+    #[test]
+    fn test_rename_tag_deduplicates() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        // File has both "alpha" and "beta" -- renaming "alpha" -> "beta" should deduplicate
+        create_tagged_file(root, "a.md", "A", &["alpha", "beta"]);
+
+        let config = test_config(false);
+        let changed = rename_tag(root, "alpha", "beta", None, &config).unwrap();
+        assert_eq!(changed, 1);
+
+        let file = read_file(root, "a.md").unwrap();
+        assert_eq!(file.frontmatter.tags, vec!["beta"]);
+    }
+
+    #[test]
+    fn test_delete_tag() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["remove-me", "keep"]);
+        create_tagged_file(root, "b.md", "B", &["keep"]);
+
+        let config = test_config(false);
+        let changed = delete_tag(root, "remove-me", None, &config).unwrap();
+        assert_eq!(changed, 1);
+
+        let file_a = read_file(root, "a.md").unwrap();
+        assert!(!file_a.frontmatter.tags.contains(&"remove-me".to_string()));
+        assert!(file_a.frontmatter.tags.contains(&"keep".to_string()));
+    }
+
+    #[test]
+    fn test_delete_tag_nonexistent() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["exists"]);
+
+        let config = test_config(false);
+        let changed = delete_tag(root, "nope", None, &config).unwrap();
+        assert_eq!(changed, 0);
+    }
+
+    #[test]
+    fn test_merge_tags() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["src1", "keep"]);
+        create_tagged_file(root, "b.md", "B", &["src2"]);
+        create_tagged_file(root, "c.md", "C", &["unrelated"]);
+
+        let config = test_config(false);
+        let sources = vec!["src1".to_string(), "src2".to_string()];
+        let changed = merge_tags(root, &sources, "merged", None, &config).unwrap();
+        assert_eq!(changed, 2);
+
+        let file_a = read_file(root, "a.md").unwrap();
+        assert!(file_a.frontmatter.tags.contains(&"merged".to_string()));
+        assert!(file_a.frontmatter.tags.contains(&"keep".to_string()));
+        assert!(!file_a.frontmatter.tags.contains(&"src1".to_string()));
+
+        let file_b = read_file(root, "b.md").unwrap();
+        assert!(file_b.frontmatter.tags.contains(&"merged".to_string()));
+        assert!(!file_b.frontmatter.tags.contains(&"src2".to_string()));
+
+        let file_c = read_file(root, "c.md").unwrap();
+        assert_eq!(file_c.frontmatter.tags, vec!["unrelated"]);
+    }
+
+    #[test]
+    fn test_merge_tags_empty_sources() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        create_tagged_file(root, "a.md", "A", &["tag"]);
+
+        let config = test_config(false);
+        let changed = merge_tags(root, &[], "target", None, &config).unwrap();
+        assert_eq!(changed, 0);
+    }
+
+    #[test]
+    fn test_rename_tag_with_auto_commit() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let repo = init_repo(root).unwrap();
+        let config = test_config(true);
+
+        create_file(root, "a.md", "A", "prompt", None, Some(&repo), &config).unwrap();
+        // Add a tag manually
+        let file = read_file(root, "a.md").unwrap();
+        let mut fm = file.frontmatter.clone();
+        fm.tags = vec!["old".to_string()];
+        write_file(root, "a.md", &fm, &file.body).unwrap();
+
+        let log_before = crate::git_ops::git_log(&repo, None, 20).unwrap();
+        let count_before = log_before.len();
+
+        let changed = rename_tag(root, "old", "new", Some(&repo), &config).unwrap();
+        assert_eq!(changed, 1);
+
+        let log_after = crate::git_ops::git_log(&repo, None, 20).unwrap();
+        assert_eq!(log_after.len(), count_before + 1);
+        assert!(log_after[0].message.contains("Rename tag"));
     }
 }

@@ -8,7 +8,7 @@ use crate::search::PromptSearch;
 use crate::state::AppState;
 use crate::types::{
     CommitEntry, DiffResult, LintResult, PromptEntry, PromptFile, RepoConfig, RepoStatus,
-    ResolvedPrompt, SearchFilters, SearchResult, VariableDefinition,
+    ResolvedPrompt, SearchFilters, SearchResult, TagInfo, VariableDefinition,
 };
 
 // ---------------------------------------------------------------------------
@@ -59,6 +59,40 @@ pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 #[tauri::command]
 pub fn list_files(state: tauri::State<'_, AppState>) -> Result<Vec<PromptEntry>, AppError> {
     crate::file_ops::list_all(&state.repo_root)
+}
+
+#[tauri::command]
+pub fn list_tags(state: tauri::State<'_, AppState>) -> Result<Vec<TagInfo>, AppError> {
+    crate::file_ops::list_tags(&state.repo_root)
+}
+
+#[tauri::command]
+pub fn rename_tag(
+    state: tauri::State<'_, AppState>,
+    old_name: String,
+    new_name: String,
+) -> Result<usize, AppError> {
+    let repo = state.repo.lock().unwrap();
+    crate::file_ops::rename_tag(&state.repo_root, &old_name, &new_name, Some(&repo), &state.config)
+}
+
+#[tauri::command]
+pub fn delete_tag(
+    state: tauri::State<'_, AppState>,
+    tag_name: String,
+) -> Result<usize, AppError> {
+    let repo = state.repo.lock().unwrap();
+    crate::file_ops::delete_tag(&state.repo_root, &tag_name, Some(&repo), &state.config)
+}
+
+#[tauri::command]
+pub fn merge_tags(
+    state: tauri::State<'_, AppState>,
+    source_tags: Vec<String>,
+    target_tag: String,
+) -> Result<usize, AppError> {
+    let repo = state.repo.lock().unwrap();
+    crate::file_ops::merge_tags(&state.repo_root, &source_tags, &target_tag, Some(&repo), &state.config)
 }
 
 #[tauri::command]
