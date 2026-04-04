@@ -172,6 +172,53 @@ pub fn move_file(
 }
 
 #[tauri::command]
+pub fn create_folder(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<serde_json::Value, AppError> {
+    let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    crate::file_ops::create_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn rename_folder(
+    state: tauri::State<'_, AppState>,
+    from: String,
+    to: String,
+) -> Result<serde_json::Value, AppError> {
+    let moved = {
+        let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+        crate::file_ops::rename_folder(&state.repo_root, &from, &to, Some(&*repo), &state.config)?
+    };
+
+    // Update search index for all moved files
+    let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    for (old, new) in &moved {
+        search.remove_document(old);
+        if let Ok(file) = crate::file_ops::read_file(&state.repo_root, new) {
+            let entry = PromptEntry {
+                path: file.path,
+                frontmatter: file.frontmatter,
+            };
+            search.add_document(&entry, &file.body);
+        }
+    }
+
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn delete_folder(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<serde_json::Value, AppError> {
+    let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    crate::file_ops::delete_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
 pub fn git_log(
     state: tauri::State<'_, AppState>,
     path: Option<String>,

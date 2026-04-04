@@ -259,6 +259,164 @@ pub fn move_file(
     Ok(())
 }
 
+/// Create an empty folder and optionally auto-commit.
+pub fn create_folder(
+    repo_root: &Path,
+    folder_path: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<(), AppError> {
+    let full = safe_path(repo_root, folder_path)?;
+    if full.exists() {
+        return Err(AppError::Custom(format!(
+            "Folder already exists: {folder_path}"
+        )));
+    }
+    fs::create_dir_all(&full)?;
+
+    // Git doesn't track empty directories, so create a .gitkeep
+    let gitkeep = full.join(".gitkeep");
+    fs::write(&gitkeep, "")?;
+
+    if config.auto_commit {
+        if let Some(r) = repo {
+            let gitkeep_rel = format!("{folder_path}/.gitkeep");
+            auto_commit(r, &[&gitkeep_rel], "Create folder", Some(folder_path), &config.commit_prefix)?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Rename/move a folder and all its contents. Auto-commits if enabled.
+pub fn rename_folder(
+    repo_root: &Path,
+    from: &str,
+    to: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<Vec<(String, String)>, AppError> {
+    let from_full = safe_path(repo_root, from)?;
+    let to_full = safe_path(repo_root, to)?;
+
+    if !from_full.is_dir() {
+        return Err(AppError::Custom(format!("Not a directory: {from}")));
+    }
+    if to_full.exists() {
+        return Err(AppError::Custom(format!(
+            "Destination already exists: {to}"
+        )));
+    }
+
+    // Collect all file paths before the move for git staging
+    let mut old_paths: Vec<String> = Vec::new();
+    for entry in WalkDir::new(&from_full) {
+        let entry = entry.map_err(|e| AppError::Custom(format!("walkdir error: {e}")))?;
+        if entry.file_type().is_file() {
+            let rel = entry.path().strip_prefix(repo_root).unwrap_or(entry.path());
+            old_paths.push(rel.to_string_lossy().replace('\\', "/"));
+        }
+    }
+
+    if let Some(parent) = to_full.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    fs::rename(&from_full, &to_full)?;
+
+    // Compute new paths
+    let moved: Vec<(String, String)> = old_paths
+        .iter()
+        .map(|old| {
+            let suffix = old.strip_prefix(from).unwrap_or(old);
+            let new = format!("{to}{suffix}");
+            (old.clone(), new)
+        })
+        .collect();
+
+    if config.auto_commit {
+        if let Some(r) = repo {
+            let mut index = r.index()?;
+            for (old, new) in &moved {
+                let _ = index.remove_path(Path::new(old));
+                let _ = index.add_path(Path::new(new));
+            }
+            index.write()?;
+
+            let tree_oid = index.write_tree()?;
+            let tree = r.find_tree(tree_oid)?;
+            let message = format!("{} Rename folder \"{}\" → \"{}\"", config.commit_prefix, from, to);
+            let sig = r.signature().unwrap_or_else(|_| {
+                git2::Signature::now("Promptcase", "promptcase@local").unwrap()
+            });
+            let parent = r.head().ok().and_then(|h| h.peel_to_commit().ok());
+            let parents: Vec<&git2::Commit> = match parent.as_ref() {
+                Some(p) => vec![p],
+                None => vec![],
+            };
+            r.commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)?;
+        }
+    }
+
+    Ok(moved)
+}
+
+/// Delete an empty folder. Returns error if folder is non-empty (excluding .gitkeep).
+pub fn delete_folder(
+    repo_root: &Path,
+    folder_path: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<(), AppError> {
+    let full = safe_path(repo_root, folder_path)?;
+    if !full.is_dir() {
+        return Err(AppError::Custom(format!("Not a directory: {folder_path}")));
+    }
+
+    // Check if the folder has any real content (ignore .gitkeep)
+    let has_content = fs::read_dir(&full)?
+        .filter_map(|e| e.ok())
+        .any(|e| e.file_name() != ".gitkeep");
+
+    if has_content {
+        return Err(AppError::Custom(
+            "Cannot delete non-empty folder. Move or delete its contents first.".into(),
+        ));
+    }
+
+    // Remove .gitkeep first if it exists
+    let gitkeep = full.join(".gitkeep");
+    if gitkeep.exists() {
+        fs::remove_file(&gitkeep)?;
+    }
+
+    fs::remove_dir(&full)?;
+
+    if config.auto_commit {
+        if let Some(r) = repo {
+            let gitkeep_rel = format!("{folder_path}/.gitkeep");
+            let mut index = r.index()?;
+            let _ = index.remove_path(Path::new(&gitkeep_rel));
+            index.write()?;
+
+            let tree_oid = index.write_tree()?;
+            let tree = r.find_tree(tree_oid)?;
+            let message = format!("{} Delete folder \"{}\"", config.commit_prefix, folder_path);
+            let sig = r.signature().unwrap_or_else(|_| {
+                git2::Signature::now("Promptcase", "promptcase@local").unwrap()
+            });
+            let parent = r.head().ok().and_then(|h| h.peel_to_commit().ok());
+            let parents: Vec<&git2::Commit> = match parent.as_ref() {
+                Some(p) => vec![p],
+                None => vec![],
+            };
+            r.commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Generate default template content for a new prompt file.
 fn default_template(title: &str, prompt_type: &str) -> String {
     let now = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
@@ -656,5 +814,107 @@ mod tests {
         let log_after = crate::git_ops::git_log(&repo, None, 10).unwrap();
         assert_eq!(log_after.len(), 1);
         assert!(log_after[0].message.contains("Create"));
+    }
+
+    #[test]
+    fn test_create_folder() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "my-folder", None, &config).unwrap();
+        assert!(root.join("my-folder").is_dir());
+        assert!(root.join("my-folder/.gitkeep").exists());
+    }
+
+    #[test]
+    fn test_create_folder_already_exists() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        fs::create_dir_all(root.join("existing")).unwrap();
+        let result = create_folder(root, "existing", None, &config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_rename_folder() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "old-name", None, &config).unwrap();
+        create_file(root, "old-name/test.md", "Test", "prompt", None, None, &config).unwrap();
+
+        let moved = rename_folder(root, "old-name", "new-name", None, &config).unwrap();
+        assert!(!root.join("old-name").exists());
+        assert!(root.join("new-name").is_dir());
+        assert!(root.join("new-name/test.md").exists());
+        assert!(!moved.is_empty());
+    }
+
+    #[test]
+    fn test_rename_folder_destination_exists() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "a", None, &config).unwrap();
+        create_folder(root, "b", None, &config).unwrap();
+        let result = rename_folder(root, "a", "b", None, &config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_delete_empty_folder() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "empty-folder", None, &config).unwrap();
+        delete_folder(root, "empty-folder", None, &config).unwrap();
+        assert!(!root.join("empty-folder").exists());
+    }
+
+    #[test]
+    fn test_delete_non_empty_folder() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "has-files", None, &config).unwrap();
+        create_file(root, "has-files/test.md", "Test", "prompt", None, None, &config).unwrap();
+        let result = delete_folder(root, "has-files", None, &config);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_create_folder_with_auto_commit() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let repo = init_repo(root).unwrap();
+        let config = test_config(true);
+
+        create_folder(root, "committed-folder", Some(&repo), &config).unwrap();
+        let log = crate::git_ops::git_log(&repo, None, 10).unwrap();
+        assert_eq!(log.len(), 1);
+        assert!(log[0].message.contains("Create folder"));
+    }
+
+    #[test]
+    fn test_rename_folder_nested() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_folder(root, "parent", None, &config).unwrap();
+        create_folder(root, "target", None, &config).unwrap();
+        create_file(root, "parent/a.md", "A", "prompt", None, None, &config).unwrap();
+
+        let moved = rename_folder(root, "parent", "target/parent", None, &config).unwrap();
+        assert!(root.join("target/parent/a.md").exists());
+        assert!(!root.join("parent").exists());
+        assert!(!moved.is_empty());
     }
 }
