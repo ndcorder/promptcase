@@ -417,6 +417,123 @@ pub fn delete_folder(
     Ok(())
 }
 
+/// Duplicate a prompt file with a new ID and "(Copy)" title suffix.
+pub fn duplicate_file(
+    repo_root: &Path,
+    file_path: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<PromptFile, AppError> {
+    let full = safe_path(repo_root, file_path)?;
+    let content = fs::read_to_string(&full)?;
+    let parsed = parse_prompt_file(file_path, &content);
+
+    // Generate destination path: {dir}/{slug}-copy.md, {dir}/{slug}-copy-2.md, etc.
+    let base = file_path.trim_end_matches(".md");
+    let mut new_path = format!("{base}-copy.md");
+    let mut counter = 2u32;
+    while safe_path(repo_root, &new_path)
+        .map(|p| p.exists())
+        .unwrap_or(false)
+    {
+        new_path = format!("{base}-copy-{counter}.md");
+        counter += 1;
+    }
+
+    let new_full = safe_path(repo_root, &new_path)?;
+    if let Some(parent) = new_full.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let now = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
+    let mut fm = parsed.frontmatter.clone();
+    fm.id = generate_id();
+    fm.title = format!("{} (Copy)", fm.title);
+    fm.created = now.clone();
+    fm.modified = now;
+    fm.starred_versions = Vec::new();
+
+    let new_content = serialize_prompt_file(&fm, &parsed.body)?;
+    fs::write(&new_full, &new_content)?;
+
+    if config.auto_commit {
+        if let Some(r) = repo {
+            auto_commit(r, &[&new_path], "Duplicate", Some(&fm.title), &config.commit_prefix)?;
+        }
+    }
+
+    Ok(parse_prompt_file(&new_path, &new_content))
+}
+
+/// Move multiple files to a destination folder. Single commit for all moves.
+pub fn move_files(
+    repo_root: &Path,
+    paths: &[String],
+    destination: &str,
+    repo: Option<&Repository>,
+    config: &RepoConfig,
+) -> Result<Vec<(String, String)>, AppError> {
+    // Validate destination exists or create it
+    if !destination.is_empty() {
+        let dest_full = safe_path(repo_root, destination)?;
+        if !dest_full.is_dir() {
+            fs::create_dir_all(&dest_full)?;
+        }
+    }
+
+    let mut moved: Vec<(String, String)> = Vec::new();
+    for path in paths {
+        let filename = Path::new(path)
+            .file_name()
+            .ok_or_else(|| AppError::Custom(format!("Invalid path: {path}")))?
+            .to_string_lossy();
+        let new_path = if destination.is_empty() {
+            filename.to_string()
+        } else {
+            format!("{destination}/{filename}")
+        };
+        let from_full = safe_path(repo_root, path)?;
+        let to_full = safe_path(repo_root, &new_path)?;
+
+        if let Some(parent) = to_full.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::rename(&from_full, &to_full)?;
+        moved.push((path.clone(), new_path));
+    }
+
+    if config.auto_commit {
+        if let Some(r) = repo {
+            let mut index = r.index()?;
+            for (old, new) in &moved {
+                let _ = index.remove_path(Path::new(old));
+                let _ = index.add_path(Path::new(new));
+            }
+            index.write()?;
+
+            let tree_oid = index.write_tree()?;
+            let tree = r.find_tree(tree_oid)?;
+            let message = format!(
+                "{} Move {} file(s) to \"{}\"",
+                config.commit_prefix,
+                moved.len(),
+                destination
+            );
+            let sig = r.signature().unwrap_or_else(|_| {
+                git2::Signature::now("Promptcase", "promptcase@local").unwrap()
+            });
+            let parent = r.head().ok().and_then(|h| h.peel_to_commit().ok());
+            let parents: Vec<&git2::Commit> = match parent.as_ref() {
+                Some(p) => vec![p],
+                None => vec![],
+            };
+            r.commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)?;
+        }
+    }
+
+    Ok(moved)
+}
+
 /// Generate default template content for a new prompt file.
 fn default_template(title: &str, prompt_type: &str) -> String {
     let now = Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
@@ -916,5 +1033,79 @@ mod tests {
         assert!(root.join("target/parent/a.md").exists());
         assert!(!root.join("parent").exists());
         assert!(!moved.is_empty());
+    }
+
+    #[test]
+    fn test_duplicate_file() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_file(root, "original.md", "Original", "prompt", None, None, &config).unwrap();
+        let dup = duplicate_file(root, "original.md", None, &config).unwrap();
+        assert_eq!(dup.path, "original-copy.md");
+        assert_eq!(dup.frontmatter.title, "Original (Copy)");
+        assert_ne!(dup.frontmatter.id, read_file(root, "original.md").unwrap().frontmatter.id);
+    }
+
+    #[test]
+    fn test_duplicate_file_increments_suffix() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_file(root, "test.md", "Test", "prompt", None, None, &config).unwrap();
+        duplicate_file(root, "test.md", None, &config).unwrap();
+        let dup2 = duplicate_file(root, "test.md", None, &config).unwrap();
+        assert_eq!(dup2.path, "test-copy-2.md");
+    }
+
+    #[test]
+    fn test_duplicate_file_in_subfolder() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_file(root, "sub/original.md", "Sub Original", "prompt", None, None, &config).unwrap();
+        let dup = duplicate_file(root, "sub/original.md", None, &config).unwrap();
+        assert_eq!(dup.path, "sub/original-copy.md");
+        assert!(root.join("sub/original-copy.md").exists());
+    }
+
+    #[test]
+    fn test_move_files_batch() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_file(root, "a.md", "A", "prompt", None, None, &config).unwrap();
+        create_file(root, "b.md", "B", "prompt", None, None, &config).unwrap();
+        create_folder(root, "dest", None, &config).unwrap();
+
+        let moved = move_files(
+            root,
+            &["a.md".into(), "b.md".into()],
+            "dest",
+            None,
+            &config,
+        ).unwrap();
+
+        assert_eq!(moved.len(), 2);
+        assert!(root.join("dest/a.md").exists());
+        assert!(root.join("dest/b.md").exists());
+        assert!(!root.join("a.md").exists());
+        assert!(!root.join("b.md").exists());
+    }
+
+    #[test]
+    fn test_move_files_to_root() {
+        let tmp = TempDir::new().unwrap();
+        let root = tmp.path();
+        let config = test_config(false);
+
+        create_file(root, "sub/a.md", "A", "prompt", None, None, &config).unwrap();
+        let moved = move_files(root, &["sub/a.md".into()], "", None, &config).unwrap();
+        assert_eq!(moved.len(), 1);
+        assert!(root.join("a.md").exists());
     }
 }

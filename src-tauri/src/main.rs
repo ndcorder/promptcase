@@ -29,6 +29,8 @@ fn main() {
             commands::create_folder,
             commands::rename_folder,
             commands::delete_folder,
+            commands::duplicate_file,
+            commands::move_files,
             commands::git_log,
             commands::git_diff,
             commands::git_restore,

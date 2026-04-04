@@ -219,6 +219,51 @@ pub fn delete_folder(
 }
 
 #[tauri::command]
+pub fn duplicate_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<PromptFile, AppError> {
+    let file = {
+        let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+        crate::file_ops::duplicate_file(&state.repo_root, &path, Some(&*repo), &state.config)?
+    };
+
+    let entry = PromptEntry {
+        path: file.path.clone(),
+        frontmatter: file.frontmatter.clone(),
+    };
+    state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?.add_document(&entry, &file.body);
+
+    Ok(file)
+}
+
+#[tauri::command]
+pub fn move_files(
+    state: tauri::State<'_, AppState>,
+    paths: Vec<String>,
+    destination: String,
+) -> Result<serde_json::Value, AppError> {
+    let moved = {
+        let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+        crate::file_ops::move_files(&state.repo_root, &paths, &destination, Some(&*repo), &state.config)?
+    };
+
+    let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    for (old, new) in &moved {
+        search.remove_document(old);
+        if let Ok(file) = crate::file_ops::read_file(&state.repo_root, new) {
+            let entry = PromptEntry {
+                path: file.path,
+                frontmatter: file.frontmatter,
+            };
+            search.add_document(&entry, &file.body);
+        }
+    }
+
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
 pub fn git_log(
     state: tauri::State<'_, AppState>,
     path: Option<String>,
