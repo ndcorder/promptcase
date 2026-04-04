@@ -102,6 +102,37 @@ pub fn ensure_repo_structure(repo_root: &Path) -> Result<(), AppError> {
         fs::write(&user_tpl, DEFAULT_USER_TEMPLATE)?;
     }
 
+    // Scaffold default folder structure (only on first init)
+    let scaffold_folders = [
+        "fragments",
+        "fragments/system-prompts",
+        "fragments/personas",
+        "coding",
+        "coding/review",
+        "coding/generation",
+        "coding/debugging",
+        "writing",
+        "writing/technical",
+        "writing/creative",
+        "analysis",
+        "analysis/data",
+        "analysis/research",
+        "workflows",
+        "archive",
+    ];
+
+    for folder in &scaffold_folders {
+        let folder_path = repo_root.join(folder);
+        if !folder_path.exists() {
+            fs::create_dir_all(&folder_path)?;
+            // .gitkeep so git tracks the empty directory
+            let gitkeep = folder_path.join(".gitkeep");
+            if !gitkeep.exists() {
+                fs::write(&gitkeep, "")?;
+            }
+        }
+    }
+
     Ok(())
 }
 
