@@ -31,6 +31,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 export const api = {
   // File operations
   listFiles: () => call<PromptEntry[]>("list_files"),
+  listFolders: () => call<string[]>("list_folders"),
   readFile: (path: string) => call<PromptFile>("read_file", { path }),
   writeFile: (path: string, frontmatter?: object, body?: string) =>
     call<{ ok: boolean }>("write_file", { path, frontmatter, body }),

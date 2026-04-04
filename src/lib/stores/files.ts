@@ -9,6 +9,7 @@ export const expandedFolders = writable<Set<string>>(new Set());
 export const filesLoading = writable<boolean>(true);
 export const selectedPaths = writable<Set<string>>(new Set());
 export const searchQuery = writable<string>("");
+export const knownFolders = writable<string[]>([]);
 
 export const allTags = derived(promptEntries, ($entries) => {
   const tags = new Set<string>();
@@ -42,9 +43,12 @@ export const filteredEntries = derived(
   },
 );
 
-export const folderTree = derived(filteredEntries, ($entries) => {
-  return buildFolderTree($entries);
-});
+export const folderTree = derived(
+  [filteredEntries, knownFolders],
+  ([$entries, $folders]) => {
+    return buildFolderTree($entries, $folders);
+  },
+);
 
 export const folderFileCounts = derived(folderTree, ($tree) => {
   const counts = new Map<string, number>();
@@ -72,7 +76,27 @@ export const allFolderPaths = derived(folderTree, ($tree) => {
   return paths.sort();
 });
 
-function buildFolderTree(entries: PromptEntry[]): FolderNode {
+function ensureFolderNode(root: FolderNode, folderPath: string): FolderNode {
+  const parts = folderPath.split("/");
+  let current = root;
+  for (const part of parts) {
+    let child = current.children.find((c) => c.name === part);
+    if (!child) {
+      child = {
+        name: part,
+        path: current.path ? `${current.path}/${part}` : part,
+        children: [],
+        files: [],
+        expanded: true,
+      };
+      current.children.push(child);
+    }
+    current = child;
+  }
+  return current;
+}
+
+function buildFolderTree(entries: PromptEntry[], folders: string[] = []): FolderNode {
   const root: FolderNode = {
     name: "",
     path: "",
@@ -81,27 +105,17 @@ function buildFolderTree(entries: PromptEntry[]): FolderNode {
     expanded: true,
   };
 
+  // Create nodes for all known folders (including empty ones)
+  for (const folderPath of folders) {
+    ensureFolderNode(root, folderPath);
+  }
+
   for (const entry of entries) {
     const parts = entry.path.split("/");
     parts.pop();
-    let current = root;
-
-    for (const part of parts) {
-      let child = current.children.find((c) => c.name === part);
-      if (!child) {
-        child = {
-          name: part,
-          path: current.path ? `${current.path}/${part}` : part,
-          children: [],
-          files: [],
-          expanded: true,
-        };
-        current.children.push(child);
-      }
-      current = child;
-    }
-
-    current.files.push(entry);
+    const folderPath = parts.join("/");
+    const parent = folderPath ? ensureFolderNode(root, folderPath) : root;
+    parent.files.push(entry);
   }
 
   sortTree(root);
@@ -194,8 +208,12 @@ export const dragState = writable<{
 export async function loadFiles(): Promise<void> {
   filesLoading.set(true);
   try {
-    const entries = await api.listFiles();
+    const [entries, folders] = await Promise.all([
+      api.listFiles(),
+      api.listFolders(),
+    ]);
     promptEntries.set(entries);
+    knownFolders.set(folders);
   } catch (err) {
     console.error("Failed to load files:", err);
   } finally {

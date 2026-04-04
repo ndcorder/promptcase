@@ -86,6 +86,37 @@ pub fn list_all(repo_root: &Path) -> Result<Vec<PromptEntry>, AppError> {
     Ok(entries)
 }
 
+/// Walk the repo directory and return a sorted list of all visible folder paths.
+/// Includes empty folders (those with only `.gitkeep`).
+pub fn list_folders(repo_root: &Path) -> Result<Vec<String>, AppError> {
+    let mut folders: Vec<String> = Vec::new();
+
+    let walker = WalkDir::new(repo_root).into_iter().filter_entry(|e| {
+        if e.depth() == 0 {
+            return true;
+        }
+        let name = e.file_name().to_string_lossy();
+        !name.starts_with('.') && name != "node_modules" && name != "_templates"
+    });
+
+    for entry in walker {
+        let entry = entry.map_err(|e| AppError::Custom(format!("walkdir error: {e}")))?;
+        if !entry.file_type().is_dir() || entry.depth() == 0 {
+            continue;
+        }
+        let rel_path = entry
+            .path()
+            .strip_prefix(repo_root)
+            .unwrap_or(entry.path())
+            .to_string_lossy()
+            .replace('\\', "/");
+        folders.push(rel_path);
+    }
+
+    folders.sort();
+    Ok(folders)
+}
+
 /// Read and parse a single prompt file.
 pub fn read_file(repo_root: &Path, file_path: &str) -> Result<PromptFile, AppError> {
     let full = safe_path(repo_root, file_path)?;

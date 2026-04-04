@@ -62,6 +62,11 @@ pub fn list_files(state: tauri::State<'_, AppState>) -> Result<Vec<PromptEntry>,
 }
 
 #[tauri::command]
+pub fn list_folders(state: tauri::State<'_, AppState>) -> Result<Vec<String>, AppError> {
+    crate::file_ops::list_folders(&state.repo_root)
+}
+
+#[tauri::command]
 pub fn read_file(state: tauri::State<'_, AppState>, path: String) -> Result<PromptFile, AppError> {
     crate::file_ops::read_file(&state.repo_root, &path)
 }
