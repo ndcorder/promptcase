@@ -193,6 +193,16 @@ pub fn git_diff(
 }
 
 #[tauri::command]
+pub fn git_show_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    commit: String,
+) -> Result<String, AppError> {
+    let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    crate::git_ops::show_file_at_commit(&*repo, &path, &commit)
+}
+
+#[tauri::command]
 pub fn git_restore(
     state: tauri::State<'_, AppState>,
     path: String,
