@@ -45,6 +45,22 @@ export const api = {
   moveFile: (from: string, to: string) =>
     call<{ ok: boolean }>("move_file", { from, to }),
 
+  // Folder operations
+  createFolder: (path: string) =>
+    call<{ ok: boolean }>("create_folder", { path }),
+  renameFolder: (from: string, to: string) =>
+    call<{ ok: boolean }>("rename_folder", { from, to }),
+  deleteFolder: (path: string) =>
+    call<{ ok: boolean }>("delete_folder", { path }),
+
+  // Duplicate
+  duplicateFile: (path: string) =>
+    call<PromptFile>("duplicate_file", { path }),
+
+  // Batch move
+  moveFiles: (paths: string[], destination: string) =>
+    call<{ ok: boolean }>("move_files", { paths, destination }),
+
   // Git operations
   gitLog: (path?: string, limit?: number) =>
     call<CommitEntry[]>("git_log", { path, limit }),
