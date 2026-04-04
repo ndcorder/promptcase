@@ -5,11 +5,12 @@
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
   import FolderContextMenu from "./FolderContextMenu.svelte";
-  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts } from "../stores/files";
+  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts, dragState, clearSelection } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
   import { addToast } from "../stores/toast";
+  import { get } from "svelte/store";
 
   async function handleDragStart(e: MouseEvent) {
     if (!isTauri()) return;
@@ -182,6 +183,46 @@
     }
   }
 
+  async function handleFileDrop(sourcePaths: string[], destinationFolder: string) {
+    const toMove = sourcePaths.filter((p) => {
+      const currentDir = p.includes("/") ? p.substring(0, p.lastIndexOf("/")) : "";
+      return currentDir !== destinationFolder;
+    });
+    if (toMove.length === 0) return;
+
+    try {
+      if (toMove.length === 1) {
+        const filename = toMove[0].split("/").pop()!;
+        const newPath = destinationFolder ? `${destinationFolder}/${filename}` : filename;
+        await api.moveFile(toMove[0], newPath);
+      } else {
+        await api.moveFiles(toMove, destinationFolder);
+      }
+      for (const p of toMove) {
+        closeTab(p);
+      }
+      clearSelection();
+      await loadFiles();
+      addToast(`Moved ${toMove.length} item(s)`, "success", 2000);
+    } catch (err) {
+      console.error("Failed to move:", err);
+      addToast("Failed to move files", "error");
+    }
+  }
+
+  async function handleFolderDrop(sourceFolder: string, destinationFolder: string) {
+    try {
+      const folderName = sourceFolder.split("/").pop()!;
+      const newPath = destinationFolder ? `${destinationFolder}/${folderName}` : folderName;
+      await api.renameFolder(sourceFolder, newPath);
+      await loadFiles();
+      addToast("Folder moved", "success", 2000);
+    } catch (err) {
+      console.error("Failed to move folder:", err);
+      addToast("Failed to move folder", "error");
+    }
+  }
+
   function handleDialogCancel() {
     dialogVisible = false;
   }
@@ -229,7 +270,26 @@
     {/if}
   </div>
 
-  <div class="tree-container">
+  <div
+    class="tree-container"
+    ondragover={(e) => {
+      const ds = get(dragState);
+      if (!ds) return;
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = "move";
+    }}
+    ondrop={(e) => {
+      e.preventDefault();
+      const ds = get(dragState);
+      if (!ds) return;
+      if (ds.type === "folder") {
+        handleFolderDrop(ds.paths[0], "");
+      } else {
+        handleFileDrop(ds.paths, "");
+      }
+      dragState.set(null);
+    }}
+  >
     {#if $filesLoading}
       <div class="skeleton-list">
         <div class="skeleton" style="width: 70%"></div>
@@ -249,6 +309,8 @@
         onFileSelect={handleFileSelect}
         onFileContext={handleFileContext}
         onFolderContext={handleFolderContext}
+        onFileDrop={handleFileDrop}
+        onFolderDrop={handleFolderDrop}
         selectedPath={$selectedPath}
       />
     {/if}
