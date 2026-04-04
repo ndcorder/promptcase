@@ -88,4 +88,20 @@ export const api = {
     call<string>("generate_commit_message", { path }),
   commitFile: (path: string, message: string) =>
     call<{ ok: boolean }>("commit_file", { path, message }),
+
+  // LLM / API key management
+  getApiKey: (provider: string) =>
+    call<string | null>("get_api_key", { provider }),
+  setApiKey: (provider: string, key: string) =>
+    call<{ ok: boolean }>("set_api_key", { provider, key }),
+  deleteApiKey: (provider: string) =>
+    call<{ ok: boolean }>("delete_api_key", { provider }),
+  runPrompt: (request: {
+    provider: string;
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    temperature: number;
+    maxTokens: number;
+  }) => call<{ ok: boolean }>("run_prompt", { request }),
+  cancelPrompt: () => call<{ ok: boolean }>("cancel_prompt"),
 };
