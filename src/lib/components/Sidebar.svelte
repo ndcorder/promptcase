@@ -7,7 +7,7 @@
   import FolderContextMenu from "./FolderContextMenu.svelte";
   import MoveToFolderDialog from "./MoveToFolderDialog.svelte";
   import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery, folderFileCounts, dragState, clearSelection, toggleSelection, selectRange, selectAll, selectedPaths, filteredEntries } from "../stores/files";
-  import { openFile, closeTab } from "../stores/editor";
+  import { openFile, closeTab, openTabs } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
   import { addToast } from "../stores/toast";
@@ -168,6 +168,7 @@
   let bulkTagDialogVisible = $state(false);
   let moveToDialogVisible = $state(false);
   let moveToTargetPaths = $state<string[]>([]);
+  let treeDropActive = $state(false);
 
   async function handleBulkAddTag(tag: string) {
     bulkTagDialogVisible = false;
@@ -227,6 +228,15 @@
         const newPath = parentDir ? `${parentDir}/${slug}` : slug;
         await api.renameFolder(oldPath, newPath);
         await loadFiles();
+        openTabs.update((tabs) =>
+          tabs.map((t) => {
+            if (t.path.startsWith(oldPath + "/")) {
+              const newTabPath = newPath + t.path.slice(oldPath.length);
+              return { ...t, path: newTabPath };
+            }
+            return t;
+          }),
+        );
         addToast("Folder renamed", "success", 2000);
       } else if (dialogMode === "create-in-folder") {
         const filePath = `${deleteTargetPath}/${slug}.md`;
@@ -289,6 +299,17 @@
       const newPath = destinationFolder ? `${destinationFolder}/${folderName}` : folderName;
       await api.renameFolder(sourceFolder, newPath);
       await loadFiles();
+      const oldFolderPath = sourceFolder;
+      const newFolderPath = newPath;
+      openTabs.update((tabs) =>
+        tabs.map((t) => {
+          if (t.path.startsWith(oldFolderPath + "/")) {
+            const newTabPath = newFolderPath + t.path.slice(oldFolderPath.length);
+            return { ...t, path: newTabPath };
+          }
+          return t;
+        }),
+      );
       addToast("Folder moved", "success", 2000);
     } catch (err) {
       console.error("Failed to move folder:", err);
@@ -302,7 +323,7 @@
 </script>
 
 <svelte:window onkeydown={(e) => {
-  if (e.key === "Escape") clearSelection();
+  if (e.key === "Escape" && !moveToDialogVisible && !bulkTagDialogVisible) clearSelection();
   if ((e.metaKey || e.ctrlKey) && e.key === "a" && document.activeElement?.closest(".sidebar")) {
     e.preventDefault();
     selectAll();
@@ -356,14 +377,20 @@
 
   <div
     class="tree-container"
+    class:drag-over={treeDropActive}
     ondragover={(e) => {
       const ds = get(dragState);
       if (!ds) return;
       e.preventDefault();
       e.dataTransfer!.dropEffect = "move";
+      treeDropActive = true;
+    }}
+    ondragleave={(e) => {
+      if (e.currentTarget === e.target) treeDropActive = false;
     }}
     ondrop={(e) => {
       e.preventDefault();
+      treeDropActive = false;
       const ds = get(dragState);
       if (!ds) return;
       if (ds.type === "folder") {
@@ -576,6 +603,9 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--space-1) 0;
+  }
+  .tree-container.drag-over {
+    background: var(--accent-subtle);
   }
   .empty-tree {
     display: flex;
