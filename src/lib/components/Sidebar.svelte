@@ -4,7 +4,7 @@
   import InputDialog from "./InputDialog.svelte";
   import ConfirmDialog from "./ConfirmDialog.svelte";
   import FileContextMenu from "./FileContextMenu.svelte";
-  import { folderTree, loadFiles, promptEntries, filesLoading } from "../stores/files";
+  import { folderTree, loadFiles, promptEntries, filesLoading, searchQuery } from "../stores/files";
   import { openFile, closeTab } from "../stores/editor";
   import { selectedPath } from "../stores/files";
   import { api, isTauri } from "../ipc";
@@ -34,6 +34,12 @@
   let deleteTargetPath = $state("");
 
   let contextMenu = $state<{ path: string; x: number; y: number } | null>(null);
+
+  let searchValue = $state("");
+
+  $effect(() => {
+    searchQuery.set(searchValue);
+  });
 
   function handleFileSelect(path: string) {
     openFile(path);
@@ -139,6 +145,27 @@
 
   <TagFilter />
 
+  <div class="sidebar-search">
+    <svg class="search-icon" width="13" height="13" viewBox="0 0 16 16">
+      <circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10.5 10.5L14.5 14.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input
+      class="search-input"
+      type="text"
+      placeholder="Filter prompts..."
+      bind:value={searchValue}
+      onkeydown={(e) => { if (e.key === "Escape") { searchValue = ""; } }}
+    />
+    {#if searchValue}
+      <button class="search-clear" onclick={() => { searchValue = ""; }}>
+        <svg width="8" height="8" viewBox="0 0 8 8">
+          <path d="M1 1l6 6M7 1l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    {/if}
+  </div>
+
   <div class="tree-container">
     {#if $filesLoading}
       <div class="skeleton-list">
@@ -242,6 +269,47 @@
   .action-btn:active {
     background: rgba(255, 255, 255, 0.04);
     transform: scale(0.98);
+  }
+  .sidebar-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0 var(--space-2) var(--space-2);
+  }
+  .search-icon {
+    position: absolute;
+    left: var(--space-2);
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    padding: var(--space-1) var(--space-2) var(--space-1) calc(var(--space-2) + 18px);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    outline: none;
+    transition: border-color var(--transition-fast);
+  }
+  .search-input:focus {
+    border-color: var(--accent);
+  }
+  .search-input::placeholder {
+    color: var(--text-tertiary);
+  }
+  .search-clear {
+    position: absolute;
+    right: var(--space-1);
+    padding: var(--space-1);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+  }
+  .search-clear:hover {
+    color: var(--text-primary);
   }
   .tree-container {
     flex: 1;
