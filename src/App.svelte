@@ -13,6 +13,7 @@
   import ToastContainer from "./lib/components/ToastContainer.svelte";
   import SettingsModal from "./lib/components/SettingsModal.svelte";
   import CompareView from "./lib/components/CompareView.svelte";
+  import TagManager from "./lib/components/TagManager.svelte";
   import {
     showSidebar,
     showInspector,
@@ -27,7 +28,7 @@
   import { loadFiles } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
-  import { sidebarPosition } from "$lib/stores/layout";
+  import { sidebarPosition, showTagManager } from "$lib/stores/layout";
   import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
 
   let quickOpenVisible = $state(false);
@@ -117,6 +118,9 @@
   <ToastContainer />
   {#if showSettings}
     <SettingsModal onclose={() => (showSettings = false)} />
+  {/if}
+  {#if $showTagManager}
+    <TagManager onclose={() => showTagManager.set(false)} />
   {/if}
 </div>
 

@@ -8,6 +8,7 @@ import type {
   SearchResult,
   RepoStatus,
   RepoConfig,
+  TagInfo,
   VariableDefinition,
 } from "./types";
 
@@ -29,6 +30,15 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 
 // Public API - these match the Tauri command names exactly (snake_case)
 export const api = {
+  // Tag management
+  listTags: () => call<TagInfo[]>("list_tags"),
+  renameTag: (oldName: string, newName: string) =>
+    call<number>("rename_tag", { old_name: oldName, new_name: newName }),
+  deleteTag: (tagName: string) =>
+    call<number>("delete_tag", { tag_name: tagName }),
+  mergeTags: (sourceTags: string[], targetTag: string) =>
+    call<number>("merge_tags", { source_tags: sourceTags, target_tag: targetTag }),
+
   // File operations
   listFiles: () => call<PromptEntry[]>("list_files"),
   listFolders: () => call<string[]>("list_folders"),

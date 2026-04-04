@@ -2,6 +2,7 @@
   import { saveFile, showPreview, showSidebar, showInspector, showBottomPanel, activeFile, resolvedText } from "../stores/editor";
   import { api } from "../ipc";
   import { loadFiles } from "../stores/files";
+  import { showTagManager } from "../stores/layout";
   import { get } from "svelte/store";
 
   interface Command {
@@ -29,6 +30,7 @@
     { id: "sidebar", label: "Toggle Sidebar", shortcut: "Cmd+B", action: () => { showSidebar.update((v) => !v); onClose(); } },
     { id: "inspector", label: "Toggle Inspector", action: () => { showInspector.update((v) => !v); onClose(); } },
     { id: "bottom", label: "Toggle Bottom Panel", shortcut: "Cmd+J", action: () => { showBottomPanel.update((v) => !v); onClose(); } },
+    { id: "tag-manager", label: "Tag Manager", action: () => { showTagManager.set(true); onClose(); } },
   ];
 
   let filteredCommands = $derived.by(() => {

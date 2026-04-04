@@ -13,6 +13,7 @@
   import { api, isTauri } from "../ipc";
   import { addToast } from "../stores/toast";
   import { get } from "svelte/store";
+  import { showTagManager } from "../stores/layout";
 
   async function handleDragStart(e: MouseEvent) {
     if (!isTauri()) return;
@@ -396,6 +397,13 @@
           <path d="M1 2.5A1.5 1.5 0 012.5 1H5l1.5 2H11.5A1.5 1.5 0 0113 4.5v5A1.5 1.5 0 0111.5 11h-9A1.5 1.5 0 011 9.5z" stroke="currentColor" stroke-width="1.2"/>
           <path d="M7 5.5v3M5.5 7h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
+        New Folder
+      </button>
+      <button class="action-btn" onclick={() => showTagManager.set(true)} title="Manage Tags">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M1 3h10M1 6h7M1 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Tags
       </button>
     </div>
     {#if $selectedPaths.size > 1}
