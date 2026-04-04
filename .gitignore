@@ -12,3 +12,4 @@ src-tauri/binaries/promptcase-sidecar-*
 target/
 sidecar/promptcase-sidecar
 sidecar/promptcase-sidecar.exe
+.claude/worktrees/
