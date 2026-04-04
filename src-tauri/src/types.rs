@@ -173,6 +173,18 @@ fn default_sidebar_position() -> String {
     "left".into()
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SavedFilter {
+    pub name: String,
+    #[serde(default)]
+    pub tag: String,
+    #[serde(default)]
+    pub query: String,
+    #[serde(default)]
+    pub icon: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RepoConfig {
@@ -206,6 +218,9 @@ pub struct RepoConfig {
     // Keybindings (user overrides only)
     #[serde(default)]
     pub keybindings: HashMap<String, String>,
+
+    #[serde(default)]
+    pub saved_filters: Vec<SavedFilter>,
 }
 
 impl Default for RepoConfig {
@@ -238,6 +253,7 @@ impl Default for RepoConfig {
             theme: default_theme(),
             sidebar_position: default_sidebar_position(),
             keybindings: HashMap::new(),
+            saved_filters: Vec::new(),
         }
     }
 }
