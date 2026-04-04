@@ -127,3 +127,16 @@ export interface TabInfo {
 }
 
 export type PanelPosition = "left" | "right" | "bottom";
+
+export interface CompareVersion {
+  label: string;
+  commit: string;
+  content: string;
+}
+
+export interface CompareState {
+  visible: boolean;
+  path: string | null;
+  versionA: CompareVersion | null;
+  versionB: CompareVersion | null;
+}
