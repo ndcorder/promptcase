@@ -96,7 +96,7 @@
             {#if !$compareSelectionMode}
               <button
                 class="diff-btn"
-                onclick|stopPropagation={() => handleDiff(commit)}
+                onclick={(e) => { e.stopPropagation(); handleDiff(commit); }}
                 title="Compare with current"
               >
                 Diff
