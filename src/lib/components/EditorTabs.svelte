@@ -54,6 +54,7 @@
       <button
         class="close-btn"
         onclick={(e) => handleClose(e, tab.path)}
+        aria-label="Close tab"
       >
         <svg width="8" height="8" viewBox="0 0 8 8">
           <path d="M1 1l6 6M7 1l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>

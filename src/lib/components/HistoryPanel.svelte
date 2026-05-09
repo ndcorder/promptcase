@@ -60,6 +60,7 @@
         class:active={$compareSelectionMode}
         onclick={toggleSelectionMode}
         title="Select two versions to compare"
+        aria-label="Toggle version comparison mode"
       >
         A/B
       </button>
@@ -98,6 +99,7 @@
                 class="diff-btn"
                 onclick={(e) => { e.stopPropagation(); handleDiff(commit); }}
                 title="Compare with current"
+                aria-label="Compare with current version"
               >
                 Diff
               </button>

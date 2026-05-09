@@ -50,6 +50,9 @@
     class="folder-row"
     class:drop-target={dropTarget}
     style="padding-left: {depth * 16 + 8}px"
+    role="treeitem"
+    aria-expanded={expanded}
+    aria-level={depth + 1}
     onclick={toggleExpand}
     oncontextmenu={(e) => { e.preventDefault(); onFolderContext?.(node.path, e.clientX, e.clientY); }}
     draggable="true"
@@ -110,6 +113,9 @@
       class:insert-above={insertTarget?.path === file.path && insertTarget?.position === "above"}
       class:insert-below={insertTarget?.path === file.path && insertTarget?.position === "below"}
       style="padding-left: {(node.name ? depth + 1 : depth) * 16 + 8}px"
+      role="treeitem"
+      aria-selected={selectedPath === file.path || $selectedPaths.has(file.path)}
+      aria-level={(node.name ? depth + 1 : depth) + 1}
       draggable="true"
       onclick={(e) => onFileSelect(file.path, e)}
       oncontextmenu={(e) => { e.preventDefault(); onFileContext?.(file.path, e.clientX, e.clientY); }}

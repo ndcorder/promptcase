@@ -69,6 +69,7 @@
 {@html `<style>${templateHighlightingStyles}</style>`}
 
 <div class="app" class:sidebar-right={$sidebarPosition === "right"} data-testid="app">
+  <a href="#main-editor" class="skip-link">Skip to content</a>
   <div class="panel sidebar-panel" class:collapsed={!$showSidebar}>
       <Sidebar />
     </div>
@@ -76,7 +77,7 @@
   <div class="main-area">
     <EditorTabs />
 
-    <div class="editor-area">
+    <div class="editor-area" id="main-editor">
       {#if $activeFile}
         <div class="editor-split">
           <Editor />
@@ -234,6 +235,29 @@
   }
   .panel {
     flex-shrink: 0;
+  }
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    z-index: 10000;
+  }
+  .skip-link:focus {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    width: auto;
+    height: auto;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-base);
+    text-decoration: none;
   }
   /* Sidebar right: swap sidebar and inspector via grid order */
   .app.sidebar-right .sidebar-panel {

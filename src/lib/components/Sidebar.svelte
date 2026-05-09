@@ -14,6 +14,7 @@
   import { addToast } from "../stores/toast";
   import { get } from "svelte/store";
   import { showTagManager } from "../stores/layout";
+  import { registerAction } from "../stores/keybindings";
 
   async function handleDragStart(e: MouseEvent) {
     if (!isTauri()) return;
@@ -195,6 +196,13 @@
   let moveToTargetPaths = $state<string[]>([]);
   let treeDropActive = $state(false);
 
+  registerAction("moveSelected", () => {
+    if ($selectedPaths.size > 0) {
+      moveToTargetPaths = [...$selectedPaths];
+      moveToDialogVisible = true;
+    }
+  });
+
   async function handleBulkAddTag(tag: string) {
     bulkTagDialogVisible = false;
     const t = tag.trim().toLowerCase();
@@ -347,7 +355,6 @@
   }
 
   // Bidirectional search sync: local value <-> store
-  let searchValue = $state("");
 
   function handleSearchInput(e: Event) {
     const target = e.target as HTMLInputElement;
@@ -381,7 +388,7 @@
   <div class="sidebar-header" data-tauri-drag-region onmousedown={handleDragStart}>
     <h2 data-tauri-drag-region>Promptcase</h2>
     <div class="header-actions">
-      <button class="action-btn" onclick={handleImport} title="Import .md files">
+      <button class="action-btn" onclick={handleImport} title="Import .md files" aria-label="Import markdown files">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
           <path d="M1 8v2.5h10V8M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -428,7 +435,7 @@
       onkeydown={(e) => { if (e.key === "Escape") { searchValue = ""; } }}
     />
     {#if searchValue}
-      <button class="search-clear" onclick={() => { searchValue = ""; }}>
+      <button class="search-clear" onclick={() => { searchValue = ""; }} aria-label="Clear search">
         <svg width="8" height="8" viewBox="0 0 8 8">
           <path d="M1 1l6 6M7 1l-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
@@ -439,6 +446,8 @@
   <div
     class="tree-container"
     class:drag-over={treeDropActive}
+    role="tree"
+    aria-label="Prompt files"
     ondragover={(e) => {
       const ds = get(dragState);
       if (!ds) return;

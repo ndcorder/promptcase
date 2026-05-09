@@ -13,11 +13,11 @@
 </script>
 
 {#if $toasts.length > 0}
-  <div class="toast-container">
+  <div class="toast-container" role="status" aria-live="polite">
     {#each $toasts as toast (toast.id)}
       <div class="toast toast-{toast.type}" class:dismissing={dismissing.has(toast.id)}>
         <span class="toast-message">{toast.message}</span>
-        <button class="toast-close" onclick={() => handleDismiss(toast.id)}>
+        <button class="toast-close" onclick={() => handleDismiss(toast.id)} aria-label="Dismiss notification">
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
           </svg>

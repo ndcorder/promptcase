@@ -76,7 +76,7 @@
     {#each Object.entries($tokenCounts) as [model, count]}
       <span class="status-item tokens">{formatTokenCount(model, count)}</span>
     {/each}
-    <button class="theme-toggle" onclick={toggleTheme} title="Toggle theme">
+    <button class="theme-toggle" onclick={toggleTheme} title="Toggle theme" aria-label="Toggle theme">
       {$currentTheme === "dark" ? "\u{1F319}" : "\u{2600}\u{FE0F}"}
     </button>
   </div>

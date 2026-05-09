@@ -13,14 +13,28 @@
     fn();
     onClose();
   }
+
+  function handleMenuKeydown(e: KeyboardEvent) {
+    const items = [...(e.currentTarget as HTMLElement).querySelectorAll('[role="menuitem"]')];
+    const current = items.indexOf(document.activeElement as Element);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      (items[current < items.length - 1 ? current + 1 : 0] as HTMLElement).focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      (items[current > 0 ? current - 1 : items.length - 1] as HTMLElement).focus();
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  }
 </script>
 
 <svelte:window onclick={onClose} />
 
-<div class="context-menu" style="left: {x}px; top: {y}px" onclick={(e) => e.stopPropagation()}>
-  <button class="menu-item" onclick={() => handleAction(onEdit)}>Edit</button>
+<div class="context-menu" style="left: {x}px; top: {y}px" role="menu" aria-label="Smart folder actions" onclick={(e) => e.stopPropagation()} onkeydown={handleMenuKeydown}>
+  <button class="menu-item" role="menuitem" onclick={() => handleAction(onEdit)}>Edit</button>
   <div class="separator"></div>
-  <button class="menu-item danger" onclick={() => handleAction(onDelete)}>Delete</button>
+  <button class="menu-item danger" role="menuitem" onclick={() => handleAction(onDelete)}>Delete</button>
 </div>
 
 <style>

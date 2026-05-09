@@ -34,23 +34,38 @@
     }
     onClose();
   }
+
+  function handleMenuKeydown(e: KeyboardEvent) {
+    const items = [...(e.currentTarget as HTMLElement).querySelectorAll('[role="menuitem"]')];
+    const current = items.indexOf(document.activeElement as Element);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      (items[current < items.length - 1 ? current + 1 : 0] as HTMLElement).focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      (items[current > 0 ? current - 1 : items.length - 1] as HTMLElement).focus();
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  }
 </script>
 
 <svelte:window onclick={onClose} />
 
-<div class="context-menu" style="left: {x}px; top: {y}px" onclick={(e) => e.stopPropagation()}>
+<div class="context-menu" style="left: {x}px; top: {y}px" role="menu" aria-label="File actions" onclick={(e) => e.stopPropagation()} onkeydown={handleMenuKeydown}>
   {#if bulkCount <= 1}
-    <button class="menu-item" onclick={() => handleAction(onRename)}>Rename</button>
-    <button class="menu-item" onclick={() => handleAction(onDuplicate)}>Duplicate</button>
+    <button class="menu-item" role="menuitem" onclick={() => handleAction(onRename)}>Rename</button>
+    <button class="menu-item" role="menuitem" onclick={() => handleAction(onDuplicate)}>Duplicate</button>
   {/if}
-  <button class="menu-item" onclick={() => handleAction(onMoveTo)}>Move to...</button>
+  <button class="menu-item" role="menuitem" onclick={() => handleAction(onMoveTo)}>Move to...</button>
   {#if bulkCount > 1}
-    <button class="menu-item" onclick={() => handleAction(onAddTag)}>Add Tag to All</button>
+    <button class="menu-item" role="menuitem" onclick={() => handleAction(onAddTag)}>Add Tag to All</button>
   {/if}
   <div class="separator"></div>
   {#if bulkCount <= 1}
     <button
       class="menu-item submenu-trigger"
+      role="menuitem"
       onclick={() => { copyExpanded = !copyExpanded; }}
     >
       Copy
@@ -59,13 +74,13 @@
       </svg>
     </button>
     {#if copyExpanded}
-      <button class="menu-item sub-item" onclick={() => handleCopy("raw")}>Raw (full file)</button>
-      <button class="menu-item sub-item" onclick={() => handleCopy("body")}>Body only</button>
-      <button class="menu-item sub-item" onclick={() => handleCopy("resolved")}>Resolved</button>
+      <button class="menu-item sub-item" role="menuitem" onclick={() => handleCopy("raw")}>Raw (full file)</button>
+      <button class="menu-item sub-item" role="menuitem" onclick={() => handleCopy("body")}>Body only</button>
+      <button class="menu-item sub-item" role="menuitem" onclick={() => handleCopy("resolved")}>Resolved</button>
     {/if}
     <div class="separator"></div>
   {/if}
-  <button class="menu-item danger" onclick={() => handleAction(onDelete)}>
+  <button class="menu-item danger" role="menuitem" onclick={() => handleAction(onDelete)}>
     {bulkCount > 1 ? `Delete ${bulkCount} items` : "Delete"}
   </button>
 </div>
