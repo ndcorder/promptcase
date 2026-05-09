@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-latest
+            args: ''
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Add macOS Rust targets
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install system dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libssl-dev
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── macOS code signing ──────────────────────────────────────────
+      # Placeholder: these steps are skipped until you configure the
+      # repository secrets listed below. Once you have an Apple Developer
+      # account, add these secrets to the repo:
+      #
+      #   APPLE_CERTIFICATE          — base64-encoded .p12 certificate
+      #   APPLE_CERTIFICATE_PASSWORD — password for the .p12 file
+      #   APPLE_SIGNING_IDENTITY     — e.g. "Developer ID Application: Name (TEAMID)"
+      #   APPLE_ID                   — Apple ID email (for notarization)
+      #   APPLE_PASSWORD             — app-specific password (for notarization)
+      #   APPLE_TEAM_ID              — team ID (for notarization)
+      #
+      # See: https://tauri.app/distribute/sign/macos
+      # ────────────────────────────────────────────────────────────────
+
+      - name: Import Apple Developer Certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "⚠ No APPLE_CERTIFICATE secret — skipping code signing setup"
+            echo "  The app will be built unsigned."
+            exit 0
+          fi
+
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/build.keychain-db"
+          security default-keychain -s "$RUNNER_TEMP/build.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/build.keychain-db"
+          security set-keychain-settings -t 3600 -u "$RUNNER_TEMP/build.keychain-db"
+          security import "$RUNNER_TEMP/certificate.p12" \
+            -k "$RUNNER_TEMP/build.keychain-db" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" \
+            "$RUNNER_TEMP/build.keychain-db"
+
+          rm "$RUNNER_TEMP/certificate.p12"
+          echo "✓ Apple Developer certificate imported"
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS signing (ignored when secrets are empty)
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # macOS notarization (ignored when secrets are empty)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Promptcase ${{ github.ref_name }}'
+          releaseBody: 'See the assets below to download and install this version.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
