@@ -10,6 +10,7 @@ import type {
   RepoConfig,
   TagInfo,
   VariableDefinition,
+  RecoveryBuffer,
 } from "./types";
 
 export function isTauri(): boolean {
@@ -153,4 +154,17 @@ export const api = {
     call<PromptEntry[]>("import_files", { paths, destination }),
   importFromText: (title: string, text: string, destination: string) =>
     call<PromptFile>("import_from_text", { title, text, destination }),
+
+  // Onboarding
+  installSamples: () => call<string>("install_samples"),
+
+  // Recovery
+  saveRecovery: (path: string, content: string) =>
+    call<{ ok: boolean }>("save_recovery", { path, content }),
+  clearRecovery: (path: string) =>
+    call<{ ok: boolean }>("clear_recovery", { path }),
+  loadRecovery: () =>
+    call<RecoveryBuffer[]>("load_recovery"),
+  clearAllRecovery: () =>
+    call<{ ok: boolean }>("clear_all_recovery"),
 };

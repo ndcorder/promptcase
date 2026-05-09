@@ -15,6 +15,7 @@ Thumbs.db
 .vscode/
 .idea/
 node_modules/
+.promptcase-recovery.json
 ";
 
 const DEFAULT_SYSTEM_TEMPLATE: &str = "\
@@ -161,6 +162,7 @@ fn merge_config(defaults: RepoConfig, parsed: RepoConfig) -> RepoConfig {
         sidebar_position: parsed.sidebar_position,
         keybindings: parsed.keybindings,
         saved_filters: parsed.saved_filters,
+        onboarding_completed: parsed.onboarding_completed,
     }
 }
 

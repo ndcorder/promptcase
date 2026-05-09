@@ -532,6 +532,44 @@ pub fn unmark_file_writing(state: tauri::State<'_, AppState>, path: String) -> R
 }
 
 // ---------------------------------------------------------------------------
+// Recovery
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn save_recovery(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    content: String,
+) -> Result<serde_json::Value, AppError> {
+    crate::recovery::save_recovery_buffer(&state.repo_root, &path, &content);
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn clear_recovery(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<serde_json::Value, AppError> {
+    crate::recovery::clear_recovery_buffer(&state.repo_root, &path);
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn load_recovery(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<crate::recovery::RecoveryBuffer>, AppError> {
+    Ok(crate::recovery::load_recovery(&state.repo_root))
+}
+
+#[tauri::command]
+pub fn clear_all_recovery(
+    state: tauri::State<'_, AppState>,
+) -> Result<serde_json::Value, AppError> {
+    crate::recovery::clear_all_recovery(&state.repo_root);
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+// ---------------------------------------------------------------------------
 // LLM / API key management
 // ---------------------------------------------------------------------------
 
@@ -787,4 +825,54 @@ pub fn import_from_text(
 
     let final_file = promptcase_core::file_ops::read_file(&state.repo_root, &dest_rel)?;
     Ok(final_file)
+}
+
+// ---------------------------------------------------------------------------
+// Onboarding
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn install_samples(
+    state: tauri::State<'_, AppState>,
+) -> Result<String, AppError> {
+    use promptcase_core::samples::all_samples;
+
+    let samples = all_samples();
+    let mut first_path = String::new();
+
+    for sample in &samples {
+        let full = state.repo_root.join(sample.path);
+        if let Some(parent) = full.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        // Don't overwrite existing files
+        if !full.exists() {
+            std::fs::write(&full, sample.content)?;
+        }
+        if first_path.is_empty() && !sample.path.starts_with("_templates/") {
+            first_path = sample.path.to_string();
+        }
+    }
+
+    // Mark onboarding completed
+    promptcase_core::config::save_config(
+        &state.repo_root,
+        &{
+            let mut c = promptcase_core::config::load_config(&state.repo_root)?;
+            c.onboarding_completed = true;
+            c
+        },
+    )?;
+
+    // Rebuild search index so new files are discoverable
+    let entries = promptcase_core::file_ops::list_all(&state.repo_root)?;
+    let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    search.clear();
+    for entry in &entries {
+        if let Ok(content) = promptcase_core::file_ops::read_raw(&state.repo_root, &entry.path) {
+            search.add_document(entry, &content);
+        }
+    }
+
+    Ok(first_path)
 }

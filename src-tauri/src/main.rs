@@ -2,6 +2,7 @@
 
 mod commands;
 mod llm;
+mod recovery;
 mod state;
 mod watcher;
 
@@ -59,6 +60,11 @@ fn main() {
             commands::export_folder_zip,
             commands::import_files,
             commands::import_from_text,
+            commands::install_samples,
+            commands::save_recovery,
+            commands::clear_recovery,
+            commands::load_recovery,
+            commands::clear_all_recovery,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

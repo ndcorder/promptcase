@@ -14,6 +14,8 @@
   import SettingsModal from "./lib/components/SettingsModal.svelte";
   import CompareView from "./lib/components/CompareView.svelte";
   import TagManager from "./lib/components/TagManager.svelte";
+  import type { RecoveryBuffer } from "./lib/types";
+  import { api } from "./lib/ipc";
   import {
     showSidebar,
     showInspector,
@@ -24,32 +26,64 @@
     openTabs,
     closeTab,
     openFile,
+    editorContent,
+    startRecoveryAutoSave,
+    stopRecoveryAutoSave,
   } from "./lib/stores/editor";
+  import RecoveryDialog from "./lib/components/RecoveryDialog.svelte";
   import { loadFiles, startFileChangeListener, stopFileChangeListener } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
   import { sidebarPosition, showTagManager, showImportText } from "$lib/stores/layout";
   import ImportTextModal from "./lib/components/ImportTextModal.svelte";
   import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
+  import WelcomeScreen from "./lib/components/WelcomeScreen.svelte";
   import { addToast } from "./lib/stores/toast";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
   let showSettings = $state(false);
+  let showWelcome = $state(false);
+  let recoveryBuffers = $state<RecoveryBuffer[]>([]);
 
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const modKey = isMac ? "Cmd" : "Ctrl";
 
   onMount(async () => {
     await loadFiles();
+    try {
+      const config = await api.getConfig();
+      if (!config.onboardingCompleted) {
+        showWelcome = true;
+      }
+    } catch {}
     await initTestingListeners();
     await startFileChangeListener(
       () => get(activeFile)?.path ?? null,
       (path) => addToast(`"${path.split("/").pop()}" changed on disk`, "info"),
     );
+
+    try {
+      const buffers = await api.loadRecovery();
+      if (buffers.length > 0) {
+        recoveryBuffers = buffers;
+      }
+    } catch {
+      // no recovery data
+    }
+
+    startRecoveryAutoSave();
+
+    const handleBeforeUnload = () => {
+      api.clearAllRecovery().catch(() => {});
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      stopRecoveryAutoSave();
       destroyTestingListeners();
       stopFileChangeListener();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   });
 
@@ -134,6 +168,23 @@
   {/if}
   {#if $showImportText}
     <ImportTextModal visible={true} onClose={() => showImportText.set(false)} />
+  {/if}
+  {#if recoveryBuffers.length > 0}
+    <RecoveryDialog
+      buffers={recoveryBuffers}
+      onRestore={async () => {
+        for (const buf of recoveryBuffers) {
+          await openFile(buf.path);
+          editorContent.set(buf.content);
+        }
+        await api.clearAllRecovery();
+        recoveryBuffers = [];
+      }}
+      onDiscard={async () => {
+        await api.clearAllRecovery();
+        recoveryBuffers = [];
+      }}
+    />
   {/if}
 </div>
 

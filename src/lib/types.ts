@@ -139,6 +139,12 @@ export interface TabInfo {
   active: boolean;
 }
 
+export interface RecoveryBuffer {
+  path: string;
+  content: string;
+  timestamp: string;
+}
+
 export type PanelPosition = "left" | "right" | "bottom";
 
 export interface CompareVersion {

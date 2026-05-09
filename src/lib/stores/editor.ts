@@ -1,6 +1,7 @@
 import { writable, derived, get } from "svelte/store";
 import type { PromptFile, TabInfo, LintResult, CommitEntry } from "../types";
 import { api } from "../ipc";
+import { isTauri } from "../ipc";
 import { selectedPath, loadFiles } from "./files";
 import { addToast } from "./toast";
 import { scheduleDebouncedCommit } from "./commit";
@@ -152,6 +153,9 @@ export async function saveFile(): Promise<void> {
     const lint = await api.lintFile(file.path).catch(() => []);
     lintResults.set(lint);
 
+    // Clear recovery buffer — content is now persisted
+    api.clearRecovery(file.path).catch(() => {});
+
     // Schedule debounced git commit
     scheduleDebouncedCommit(file.path);
 
@@ -224,4 +228,29 @@ export function markModified(): void {
       t.path === file.path ? { ...t, modified: true } : t,
     ),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Crash recovery: auto-save unsaved buffers every 3 seconds
+// ---------------------------------------------------------------------------
+
+let recoveryInterval: ReturnType<typeof setInterval> | null = null;
+
+export function startRecoveryAutoSave(): void {
+  if (recoveryInterval || !isTauri()) return;
+  recoveryInterval = setInterval(() => {
+    if (get(hasUnsavedChanges)) {
+      const file = get(activeFile);
+      if (file) {
+        api.saveRecovery(file.path, get(editorContent)).catch(() => {});
+      }
+    }
+  }, 3000);
+}
+
+export function stopRecoveryAutoSave(): void {
+  if (recoveryInterval) {
+    clearInterval(recoveryInterval);
+    recoveryInterval = null;
+  }
 }
