@@ -66,6 +66,7 @@ fn main() {
             commands::clear_recovery,
             commands::load_recovery,
             commands::clear_all_recovery,
+            commands::scan_directory,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

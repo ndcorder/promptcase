@@ -12,6 +12,7 @@ import type {
   VariableDefinition,
   RecoveryBuffer,
   TestCaseResult,
+  ScannedPrompt,
 } from "./types";
 
 export function isTauri(): boolean {
@@ -182,4 +183,8 @@ export const api = {
     call<RecoveryBuffer[]>("load_recovery"),
   clearAllRecovery: () =>
     call<{ ok: boolean }>("clear_all_recovery"),
+
+  // Scanner
+  scanDirectory: (path: string) =>
+    call<ScannedPrompt[]>("scan_directory", { path }),
 };

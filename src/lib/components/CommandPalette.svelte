@@ -2,8 +2,9 @@
   import { saveFile, showPreview, showSidebar, showInspector, showBottomPanel, activeFile, resolvedText } from "../stores/editor";
   import { api } from "../ipc";
   import { loadFiles } from "../stores/files";
-  import { showTagManager, showImportText } from "../stores/layout";
+  import { showTagManager, showImportText, showScanResults } from "../stores/layout";
   import { get } from "svelte/store";
+  import { scanResults } from "../stores/scanner";
 
   interface Command {
     id: string;
@@ -32,6 +33,25 @@
     { id: "bottom", label: "Toggle Bottom Panel", shortcut: "Cmd+J", action: () => { showBottomPanel.update((v) => !v); onClose(); } },
     { id: "tag-manager", label: "Tag Manager", action: () => { showTagManager.set(true); onClose(); } },
     { id: "import-text", label: "Import from Text", action: () => { showImportText.set(true); onClose(); } },
+    { id: "scan-prompts", label: "Scan for Prompts...", action: async () => {
+      onClose();
+      try {
+        const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+        const selected = await openDialog({ directory: true });
+        if (!selected) return;
+        const path = typeof selected === "string" ? selected : (selected as unknown as string[])[0];
+        if (!path) return;
+        const results = await api.scanDirectory(path);
+        if (results.length === 0) {
+          // No results — nothing to show
+          return;
+        }
+        scanResults.set(results);
+        showScanResults.set(true);
+      } catch (err) {
+        console.error("Scan failed:", err);
+      }
+    } },
     { id: "import-files", label: "Import Files", action: async () => {
       onClose();
       try {

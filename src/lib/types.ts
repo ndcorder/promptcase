@@ -178,6 +178,18 @@ export interface TestCaseResult {
   tokenCount: number;
 }
 
+// ---------------------------------------------------------------------------
+// Scanner types
+// ---------------------------------------------------------------------------
+
+export interface ScannedPrompt {
+  sourcePath: string;
+  sourceType: string;
+  title: string;
+  content: string;
+  confidence: number;
+}
+
 export type PanelPosition = "left" | "right" | "bottom";
 
 export interface CompareVersion {

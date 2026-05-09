@@ -34,8 +34,10 @@
   import { loadFiles, startFileChangeListener, stopFileChangeListener } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
-  import { sidebarPosition, showTagManager, showImportText } from "$lib/stores/layout";
+  import { sidebarPosition, showTagManager, showImportText, showScanResults } from "$lib/stores/layout";
+  import { scanResults } from "$lib/stores/scanner";
   import ImportTextModal from "./lib/components/ImportTextModal.svelte";
+  import ScanResultsDialog from "./lib/components/ScanResultsDialog.svelte";
   import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
   import WelcomeScreen from "./lib/components/WelcomeScreen.svelte";
   import { addToast } from "./lib/stores/toast";
@@ -168,6 +170,13 @@
   {/if}
   {#if $showImportText}
     <ImportTextModal visible={true} onClose={() => showImportText.set(false)} />
+  {/if}
+  {#if $showScanResults}
+    <ScanResultsDialog
+      visible={true}
+      results={$scanResults}
+      onClose={() => { showScanResults.set(false); scanResults.set([]); }}
+    />
   {/if}
   {#if recoveryBuffers.length > 0}
     <RecoveryDialog

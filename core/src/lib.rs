@@ -5,6 +5,7 @@ pub mod file_ops;
 pub mod frontmatter;
 pub mod git_ops;
 pub mod linter;
+pub mod scanner;
 pub mod search;
 pub mod template;
 pub mod tokenizer;

@@ -940,6 +940,19 @@ pub fn import_from_text(
 }
 
 // ---------------------------------------------------------------------------
+// Scanner
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn scan_directory(path: String) -> Result<Vec<promptcase_core::scanner::ScannedPrompt>, AppError> {
+    let p = std::path::Path::new(&path);
+    if !p.is_dir() {
+        return Err(AppError::Custom(format!("Not a directory: {path}")));
+    }
+    promptcase_core::scanner::scan_directory(p)
+}
+
+// ---------------------------------------------------------------------------
 // Onboarding
 // ---------------------------------------------------------------------------
 
