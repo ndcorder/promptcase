@@ -7,4 +7,5 @@ pub mod linter;
 pub mod search;
 pub mod template;
 pub mod tokenizer;
+pub mod samples;
 pub mod types;

@@ -186,6 +186,9 @@
       }}
     />
   {/if}
+  {#if showWelcome}
+    <WelcomeScreen onclose={async () => { showWelcome = false; await loadFiles(); }} />
+  {/if}
 </div>
 
 <style>

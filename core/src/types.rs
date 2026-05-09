@@ -221,6 +221,9 @@ pub struct RepoConfig {
 
     #[serde(default)]
     pub saved_filters: Vec<SavedFilter>,
+
+    #[serde(default)]
+    pub onboarding_completed: bool,
 }
 
 impl Default for RepoConfig {
@@ -254,6 +257,7 @@ impl Default for RepoConfig {
             sidebar_position: default_sidebar_position(),
             keybindings: HashMap::new(),
             saved_filters: Vec::new(),
+            onboarding_completed: false,
         }
     }
 }
