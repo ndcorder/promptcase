@@ -4,10 +4,10 @@ use std::path::PathBuf;
 
 use tauri::Manager;
 
-use crate::error::AppError;
-use crate::search::PromptSearch;
+use promptcase_core::error::AppError;
+use promptcase_core::search::PromptSearch;
 use crate::state::AppState;
-use crate::types::{
+use promptcase_core::types::{
     CommitEntry, DiffResult, LintResult, PromptEntry, PromptFile, RepoConfig, RepoStatus,
     ResolvedPrompt, SearchFilters, SearchResult, TagInfo, VariableDefinition,
 };
@@ -29,15 +29,15 @@ pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     std::fs::create_dir_all(&repo_root)?;
 
-    crate::config::ensure_repo_structure(&repo_root)?;
-    let config = crate::config::load_config(&repo_root)?;
-    let repo = crate::git_ops::init_repo(&repo_root)?;
+    promptcase_core::config::ensure_repo_structure(&repo_root)?;
+    let config = promptcase_core::config::load_config(&repo_root)?;
+    let repo = promptcase_core::git_ops::init_repo(&repo_root)?;
 
     // Build initial search index
     let mut search = PromptSearch::new();
-    if let Ok(entries) = crate::file_ops::list_all(&repo_root) {
+    if let Ok(entries) = promptcase_core::file_ops::list_all(&repo_root) {
         for entry in &entries {
-            if let Ok(content) = crate::file_ops::read_raw(&repo_root, &entry.path) {
+            if let Ok(content) = promptcase_core::file_ops::read_raw(&repo_root, &entry.path) {
                 search.add_document(entry, &content);
             }
         }
@@ -60,17 +60,17 @@ pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
 #[tauri::command]
 pub fn list_files(state: tauri::State<'_, AppState>) -> Result<Vec<PromptEntry>, AppError> {
-    crate::file_ops::list_all(&state.repo_root)
+    promptcase_core::file_ops::list_all(&state.repo_root)
 }
 
 #[tauri::command]
 pub fn list_folders(state: tauri::State<'_, AppState>) -> Result<Vec<String>, AppError> {
-    crate::file_ops::list_folders(&state.repo_root)
+    promptcase_core::file_ops::list_folders(&state.repo_root)
 }
 
 #[tauri::command]
 pub fn list_tags(state: tauri::State<'_, AppState>) -> Result<Vec<TagInfo>, AppError> {
-    crate::file_ops::list_tags(&state.repo_root)
+    promptcase_core::file_ops::list_tags(&state.repo_root)
 }
 
 #[tauri::command]
@@ -80,7 +80,7 @@ pub fn rename_tag(
     new_name: String,
 ) -> Result<usize, AppError> {
     let repo = state.repo.lock().unwrap();
-    crate::file_ops::rename_tag(&state.repo_root, &old_name, &new_name, Some(&repo), &state.config)
+    promptcase_core::file_ops::rename_tag(&state.repo_root, &old_name, &new_name, Some(&repo), &state.config)
 }
 
 #[tauri::command]
@@ -89,7 +89,7 @@ pub fn delete_tag(
     tag_name: String,
 ) -> Result<usize, AppError> {
     let repo = state.repo.lock().unwrap();
-    crate::file_ops::delete_tag(&state.repo_root, &tag_name, Some(&repo), &state.config)
+    promptcase_core::file_ops::delete_tag(&state.repo_root, &tag_name, Some(&repo), &state.config)
 }
 
 #[tauri::command]
@@ -99,12 +99,12 @@ pub fn merge_tags(
     target_tag: String,
 ) -> Result<usize, AppError> {
     let repo = state.repo.lock().unwrap();
-    crate::file_ops::merge_tags(&state.repo_root, &source_tags, &target_tag, Some(&repo), &state.config)
+    promptcase_core::file_ops::merge_tags(&state.repo_root, &source_tags, &target_tag, Some(&repo), &state.config)
 }
 
 #[tauri::command]
 pub fn read_file(state: tauri::State<'_, AppState>, path: String) -> Result<PromptFile, AppError> {
-    crate::file_ops::read_file(&state.repo_root, &path)
+    promptcase_core::file_ops::read_file(&state.repo_root, &path)
 }
 
 #[tauri::command]
@@ -114,7 +114,7 @@ pub fn write_file(
     frontmatter: Option<serde_json::Value>,
     body: Option<String>,
 ) -> Result<serde_json::Value, AppError> {
-    let existing = crate::file_ops::read_file(&state.repo_root, &path)?;
+    let existing = promptcase_core::file_ops::read_file(&state.repo_root, &path)?;
     let mut fm = existing.frontmatter.clone();
 
     if let Some(fm_update) = frontmatter {
@@ -131,7 +131,7 @@ pub fn write_file(
 
     let body = body.unwrap_or(existing.body);
 
-    crate::file_ops::write_file(&state.repo_root, &path, &fm, &body)?;
+    promptcase_core::file_ops::write_file(&state.repo_root, &path, &fm, &body)?;
 
     let entry = PromptEntry {
         path,
@@ -154,7 +154,7 @@ pub fn create_file(
     let tpl = template.as_deref();
     let file = {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::create_file(
+        promptcase_core::file_ops::create_file(
             &state.repo_root,
             &path,
             &title,
@@ -181,7 +181,7 @@ pub fn delete_file(
 ) -> Result<serde_json::Value, AppError> {
     {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::delete_file(&state.repo_root, &path, Some(&*repo), &state.config)?;
+        promptcase_core::file_ops::delete_file(&state.repo_root, &path, Some(&*repo), &state.config)?;
     }
     state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?.remove_document(&path);
     Ok(serde_json::json!({ "ok": true }))
@@ -195,13 +195,13 @@ pub fn move_file(
 ) -> Result<serde_json::Value, AppError> {
     {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::move_file(&state.repo_root, &from, &to, Some(&*repo), &state.config)?;
+        promptcase_core::file_ops::move_file(&state.repo_root, &from, &to, Some(&*repo), &state.config)?;
     }
     // repo lock released here
 
     let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
     search.remove_document(&from);
-    if let Ok(file) = crate::file_ops::read_file(&state.repo_root, &to) {
+    if let Ok(file) = promptcase_core::file_ops::read_file(&state.repo_root, &to) {
         let entry = PromptEntry {
             path: file.path,
             frontmatter: file.frontmatter,
@@ -218,7 +218,7 @@ pub fn create_folder(
     path: String,
 ) -> Result<serde_json::Value, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::file_ops::create_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
+    promptcase_core::file_ops::create_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
     Ok(serde_json::json!({ "ok": true }))
 }
 
@@ -230,14 +230,14 @@ pub fn rename_folder(
 ) -> Result<serde_json::Value, AppError> {
     let moved = {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::rename_folder(&state.repo_root, &from, &to, Some(&*repo), &state.config)?
+        promptcase_core::file_ops::rename_folder(&state.repo_root, &from, &to, Some(&*repo), &state.config)?
     };
 
     // Update search index for all moved files
     let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
     for (old, new) in &moved {
         search.remove_document(old);
-        if let Ok(file) = crate::file_ops::read_file(&state.repo_root, new) {
+        if let Ok(file) = promptcase_core::file_ops::read_file(&state.repo_root, new) {
             let entry = PromptEntry {
                 path: file.path,
                 frontmatter: file.frontmatter,
@@ -255,7 +255,7 @@ pub fn delete_folder(
     path: String,
 ) -> Result<serde_json::Value, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::file_ops::delete_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
+    promptcase_core::file_ops::delete_folder(&state.repo_root, &path, Some(&*repo), &state.config)?;
     Ok(serde_json::json!({ "ok": true }))
 }
 
@@ -266,7 +266,7 @@ pub fn duplicate_file(
 ) -> Result<PromptFile, AppError> {
     let file = {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::duplicate_file(&state.repo_root, &path, Some(&*repo), &state.config)?
+        promptcase_core::file_ops::duplicate_file(&state.repo_root, &path, Some(&*repo), &state.config)?
     };
 
     let entry = PromptEntry {
@@ -286,13 +286,13 @@ pub fn move_files(
 ) -> Result<serde_json::Value, AppError> {
     let moved = {
         let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-        crate::file_ops::move_files(&state.repo_root, &paths, &destination, Some(&*repo), &state.config)?
+        promptcase_core::file_ops::move_files(&state.repo_root, &paths, &destination, Some(&*repo), &state.config)?
     };
 
     let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
     for (old, new) in &moved {
         search.remove_document(old);
-        if let Ok(file) = crate::file_ops::read_file(&state.repo_root, new) {
+        if let Ok(file) = promptcase_core::file_ops::read_file(&state.repo_root, new) {
             let entry = PromptEntry {
                 path: file.path,
                 frontmatter: file.frontmatter,
@@ -311,7 +311,7 @@ pub fn git_log(
     limit: Option<usize>,
 ) -> Result<Vec<CommitEntry>, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::git_log(&*repo, path.as_deref(), limit.unwrap_or(50))
+    promptcase_core::git_ops::git_log(&*repo, path.as_deref(), limit.unwrap_or(50))
 }
 
 #[tauri::command]
@@ -322,7 +322,7 @@ pub fn git_diff(
     commit_b: String,
 ) -> Result<DiffResult, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::git_diff(&*repo, &path, &commit_a, &commit_b)
+    promptcase_core::git_ops::git_diff(&*repo, &path, &commit_a, &commit_b)
 }
 
 #[tauri::command]
@@ -332,7 +332,7 @@ pub fn git_show_file(
     commit: String,
 ) -> Result<String, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::show_file_at_commit(&*repo, &path, &commit)
+    promptcase_core::git_ops::show_file_at_commit(&*repo, &path, &commit)
 }
 
 #[tauri::command]
@@ -342,13 +342,13 @@ pub fn git_restore(
     commit: String,
 ) -> Result<Option<String>, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::git_restore(&*repo, &state.repo_root, &path, &commit, &state.config.commit_prefix)
+    promptcase_core::git_ops::git_restore(&*repo, &state.repo_root, &path, &commit, &state.config.commit_prefix)
 }
 
 #[tauri::command]
 pub fn git_status(state: tauri::State<'_, AppState>) -> Result<RepoStatus, AppError> {
     let repo = state.repo.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::repo_status(&*repo, &state.repo_root)
+    promptcase_core::git_ops::repo_status(&*repo, &state.repo_root)
 }
 
 #[tauri::command]
@@ -357,8 +357,8 @@ pub fn resolve_template(
     path: String,
     variables: Option<HashMap<String, String>>,
 ) -> Result<ResolvedPrompt, AppError> {
-    let content = crate::file_ops::read_raw(&state.repo_root, &path)?;
-    crate::template::resolve_template(&path, &content, &state.repo_root, variables.as_ref())
+    let content = promptcase_core::file_ops::read_raw(&state.repo_root, &path)?;
+    promptcase_core::template::resolve_template(&path, &content, &state.repo_root, variables.as_ref())
 }
 
 #[tauri::command]
@@ -366,24 +366,24 @@ pub fn lint_file(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<Vec<LintResult>, AppError> {
-    let content = crate::file_ops::read_raw(&state.repo_root, &path)?;
-    crate::linter::lint_prompt(&path, &content, &state.repo_root, &state.config)
+    let content = promptcase_core::file_ops::read_raw(&state.repo_root, &path)?;
+    promptcase_core::linter::lint_prompt(&path, &content, &state.repo_root, &state.config)
 }
 
 #[tauri::command]
 pub fn lint_all(
     state: tauri::State<'_, AppState>,
 ) -> Result<HashMap<String, Vec<LintResult>>, AppError> {
-    let entries = crate::file_ops::list_all(&state.repo_root)?;
+    let entries = promptcase_core::file_ops::list_all(&state.repo_root)?;
     let files: Vec<(String, String)> = entries
         .iter()
         .filter_map(|e| {
-            crate::file_ops::read_raw(&state.repo_root, &e.path)
+            promptcase_core::file_ops::read_raw(&state.repo_root, &e.path)
                 .ok()
                 .map(|content| (e.path.clone(), content))
         })
         .collect();
-    crate::linter::lint_all(&files, &state.repo_root, &state.config)
+    promptcase_core::linter::lint_all(&files, &state.repo_root, &state.config)
 }
 
 #[tauri::command]
@@ -391,13 +391,13 @@ pub fn get_variables(
     state: tauri::State<'_, AppState>,
     path: String,
 ) -> Result<Vec<VariableDefinition>, AppError> {
-    let file = crate::file_ops::read_file(&state.repo_root, &path)?;
+    let file = promptcase_core::file_ops::read_file(&state.repo_root, &path)?;
     Ok(file.frontmatter.variables)
 }
 
 #[tauri::command]
 pub fn count_tokens(text: String, model: String) -> Result<usize, AppError> {
-    Ok(crate::tokenizer::count_tokens(&text, &model))
+    Ok(promptcase_core::tokenizer::count_tokens(&text, &model))
 }
 
 #[tauri::command]
@@ -407,10 +407,10 @@ pub fn count_tokens_resolved(
     model: String,
     variables: Option<HashMap<String, String>>,
 ) -> Result<usize, AppError> {
-    let content = crate::file_ops::read_raw(&state.repo_root, &path)?;
+    let content = promptcase_core::file_ops::read_raw(&state.repo_root, &path)?;
     let resolved =
-        crate::template::resolve_template(&path, &content, &state.repo_root, variables.as_ref())?;
-    Ok(crate::tokenizer::count_tokens(&resolved.text, &model))
+        promptcase_core::template::resolve_template(&path, &content, &state.repo_root, variables.as_ref())?;
+    Ok(promptcase_core::tokenizer::count_tokens(&resolved.text, &model))
 }
 
 #[tauri::command]
@@ -427,11 +427,11 @@ pub fn search_query(
 pub fn search_reindex(
     state: tauri::State<'_, AppState>,
 ) -> Result<serde_json::Value, AppError> {
-    let entries = crate::file_ops::list_all(&state.repo_root)?;
+    let entries = promptcase_core::file_ops::list_all(&state.repo_root)?;
     let mut search = state.search.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
     search.clear();
     for entry in &entries {
-        if let Ok(content) = crate::file_ops::read_raw(&state.repo_root, &entry.path) {
+        if let Ok(content) = promptcase_core::file_ops::read_raw(&state.repo_root, &entry.path) {
             search.add_document(entry, &content);
         }
     }
@@ -448,7 +448,7 @@ pub fn update_config(
     state: tauri::State<'_, AppState>,
     updates: serde_json::Value,
 ) -> Result<RepoConfig, AppError> {
-    let config = crate::config::load_config(&state.repo_root)?;
+    let config = promptcase_core::config::load_config(&state.repo_root)?;
     let mut config_value = serde_json::to_value(&config)
         .map_err(|e| AppError::Custom(format!("Failed to serialize config: {e}")))?;
     if let (Some(base), Some(updates)) = (config_value.as_object_mut(), updates.as_object()) {
@@ -458,7 +458,7 @@ pub fn update_config(
     }
     let config: RepoConfig = serde_json::from_value(config_value)
         .map_err(|e| AppError::Custom(format!("Failed to deserialize config: {e}")))?;
-    crate::config::save_config(&state.repo_root, &config)?;
+    promptcase_core::config::save_config(&state.repo_root, &config)?;
     Ok(config)
 }
 
@@ -471,7 +471,7 @@ pub fn generate_commit_message(
         .repo
         .lock()
         .map_err(|_| AppError::Custom("Internal lock error".into()))?;
-    crate::git_ops::generate_commit_message(&*repo, &state.repo_root, &path)
+    promptcase_core::git_ops::generate_commit_message(&*repo, &state.repo_root, &path)
 }
 
 #[tauri::command]
@@ -485,7 +485,7 @@ pub fn commit_file(
         .lock()
         .map_err(|_| AppError::Custom("Internal lock error".into()))?;
     let full_message = format!("{} {}", state.config.commit_prefix, message);
-    crate::git_ops::commit_with_message(&*repo, &[path.as_str()], &full_message)?;
+    promptcase_core::git_ops::commit_with_message(&*repo, &[path.as_str()], &full_message)?;
     Ok(serde_json::json!({ "ok": true }))
 }
 
@@ -514,7 +514,7 @@ pub fn delete_api_key(provider: String) -> Result<serde_json::Value, AppError> {
 pub async fn run_prompt(
     app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
-    request: crate::types::RunPromptRequest,
+    request: promptcase_core::types::RunPromptRequest,
 ) -> Result<serde_json::Value, AppError> {
     // Reset cancellation flag
     state
@@ -550,15 +550,15 @@ pub fn export_file_clipboard(
     format: String,
 ) -> Result<String, AppError> {
     match format.as_str() {
-        "raw" => crate::file_ops::read_raw(&state.repo_root, &path),
+        "raw" => promptcase_core::file_ops::read_raw(&state.repo_root, &path),
         "body" => {
-            let file = crate::file_ops::read_file(&state.repo_root, &path)?;
+            let file = promptcase_core::file_ops::read_file(&state.repo_root, &path)?;
             Ok(file.body)
         }
         "resolved" => {
-            let content = crate::file_ops::read_raw(&state.repo_root, &path)?;
+            let content = promptcase_core::file_ops::read_raw(&state.repo_root, &path)?;
             let resolved =
-                crate::template::resolve_template(&path, &content, &state.repo_root, None)?;
+                promptcase_core::template::resolve_template(&path, &content, &state.repo_root, None)?;
             Ok(resolved.text)
         }
         other => Err(AppError::Custom(format!("Unknown export format: {other}"))),
@@ -578,7 +578,7 @@ pub fn export_folder_zip(
     use zip::write::SimpleFileOptions;
     use zip::ZipWriter;
 
-    let base = crate::file_ops::safe_path(&state.repo_root, &folder)?;
+    let base = promptcase_core::file_ops::safe_path(&state.repo_root, &folder)?;
     if !base.is_dir() {
         return Err(AppError::Custom(format!("Not a directory: {folder}")));
     }
@@ -661,12 +661,12 @@ pub fn import_files(
         };
 
         // Parse, assign new ID, and re-serialize
-        let parsed = crate::frontmatter::parse_prompt_file(&dest_rel, &content);
+        let parsed = promptcase_core::frontmatter::parse_prompt_file(&dest_rel, &content);
         let mut fm = parsed.frontmatter.clone();
-        fm.id = crate::frontmatter::generate_id();
+        fm.id = promptcase_core::frontmatter::generate_id();
 
         let body = &parsed.body;
-        crate::file_ops::write_file(&state.repo_root, &dest_rel, &fm, body)?;
+        promptcase_core::file_ops::write_file(&state.repo_root, &dest_rel, &fm, body)?;
 
         created.push(PromptEntry {
             path: dest_rel.clone(),
@@ -681,7 +681,7 @@ pub fn import_files(
             .lock()
             .map_err(|_| AppError::Custom("Internal lock error".into()))?;
         for entry in &created {
-            if let Ok(content) = crate::file_ops::read_raw(&state.repo_root, &entry.path) {
+            if let Ok(content) = promptcase_core::file_ops::read_raw(&state.repo_root, &entry.path) {
                 search.add_document(entry, &content);
             }
         }
@@ -716,7 +716,7 @@ pub fn import_from_text(
         .lock()
         .map_err(|_| AppError::Custom("Internal lock error".into()))?;
 
-    let file = crate::file_ops::create_file(
+    let file = promptcase_core::file_ops::create_file(
         &state.repo_root,
         &dest_rel,
         &title,
@@ -727,7 +727,7 @@ pub fn import_from_text(
     )?;
 
     // Now overwrite the body with the provided text
-    crate::file_ops::write_file(&state.repo_root, &dest_rel, &file.frontmatter, &text)?;
+    promptcase_core::file_ops::write_file(&state.repo_root, &dest_rel, &file.frontmatter, &text)?;
 
     // Update search index
     {
@@ -739,10 +739,10 @@ pub fn import_from_text(
             path: dest_rel.clone(),
             frontmatter: file.frontmatter.clone(),
         };
-        let content = crate::file_ops::read_raw(&state.repo_root, &dest_rel)?;
+        let content = promptcase_core::file_ops::read_raw(&state.repo_root, &dest_rel)?;
         search.add_document(&entry, &content);
     }
 
-    let final_file = crate::file_ops::read_file(&state.repo_root, &dest_rel)?;
+    let final_file = promptcase_core::file_ops::read_file(&state.repo_root, &dest_rel)?;
     Ok(final_file)
 }

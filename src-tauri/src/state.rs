@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 
 use git2::Repository;
 
-use crate::search::PromptSearch;
-use crate::types::RepoConfig;
+use promptcase_core::search::PromptSearch;
+use promptcase_core::types::RepoConfig;
 
 pub struct AppState {
     pub repo_root: PathBuf,

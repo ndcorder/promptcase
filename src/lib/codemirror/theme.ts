@@ -31,6 +31,32 @@ export const promptcaseTheme = EditorView.theme(
     ".cm-panels.cm-panels-bottom": {
       borderTop: "1px solid rgba(255, 255, 255, 0.10)",
     },
+    ".cm-panels input[type=text], .cm-panels input[type=checkbox]": {
+      backgroundColor: "#1e1e1e",
+      color: "#f5f5f7",
+      border: "1px solid rgba(255, 255, 255, 0.15)",
+      borderRadius: "4px",
+      padding: "2px 6px",
+      outline: "none",
+    },
+    ".cm-panels input[type=text]:focus": {
+      borderColor: "rgba(10, 132, 255, 0.6)",
+    },
+    ".cm-panels button": {
+      backgroundColor: "rgba(255, 255, 255, 0.08)",
+      color: "#f5f5f7",
+      border: "1px solid rgba(255, 255, 255, 0.10)",
+      borderRadius: "4px",
+      padding: "2px 8px",
+      cursor: "pointer",
+    },
+    ".cm-panels button:hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.14)",
+    },
+    ".cm-panels label": {
+      color: "rgba(255, 255, 255, 0.65)",
+      fontSize: "12px",
+    },
     ".cm-searchMatch": {
       backgroundColor: "rgba(255, 159, 10, 0.25)",
       outline: "1px solid rgba(255, 159, 10, 0.4)",

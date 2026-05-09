@@ -43,6 +43,7 @@
         cmCommands.history(),
         cmAutocomplete.closeBrackets(),
         cmSearch.highlightSelectionMatches(),
+        cmSearch.search(),
         cmMarkdown.markdown(),
         themeModule.promptcaseTheme,
         themeModule.promptcaseHighlighting,
@@ -52,6 +53,7 @@
           ...cmCommands.defaultKeymap,
           ...cmCommands.historyKeymap,
           ...cmSearch.searchKeymap,
+          { key: "Mod-d", run: cmSearch.selectNextOccurrence, preventDefault: true },
           ...cmAutocomplete.closeBracketsKeymap,
           {
             key: "Mod-e",

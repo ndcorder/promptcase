@@ -1,18 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
-mod config;
-mod error;
-mod file_ops;
-mod frontmatter;
-mod git_ops;
 mod llm;
-mod linter;
-mod search;
 mod state;
-mod template;
-mod tokenizer;
-mod types;
 
 fn main() {
     tauri::Builder::default()

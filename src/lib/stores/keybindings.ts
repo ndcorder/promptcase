@@ -9,6 +9,7 @@ const DEFAULTS: Record<string, string> = {
   togglePreview: "Cmd+E",
   closeTab: "Cmd+W",
   openSettings: "Cmd+,",
+  moveSelected: "Cmd+Shift+M",
   switchTab1: "Cmd+1",
   switchTab2: "Cmd+2",
   switchTab3: "Cmd+3",
@@ -18,6 +19,9 @@ const DEFAULTS: Record<string, string> = {
   switchTab7: "Cmd+7",
   switchTab8: "Cmd+8",
   switchTab9: "Cmd+9",
+  find: "Cmd+F",
+  replace: "Cmd+H",
+  selectNextOccurrence: "Cmd+D",
 };
 
 let bindings: Record<string, string> = { ...DEFAULTS };

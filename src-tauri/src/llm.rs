@@ -6,8 +6,8 @@ use reqwest::Client;
 use serde_json::Value;
 use tauri::Emitter;
 
-use crate::error::AppError;
-use crate::types::{
+use promptcase_core::error::AppError;
+use promptcase_core::types::{
     LlmMessage, PromptChunkPayload, PromptDonePayload, PromptErrorPayload, RunPromptRequest,
 };
 
@@ -96,7 +96,8 @@ pub async fn stream_anthropic(
         .header("content-type", "application/json")
         .json(&body)
         .send()
-        .await?;
+        .await
+        .map_err(|e| AppError::Custom(format!("HTTP error: {e}")))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -116,7 +117,7 @@ pub async fn stream_anthropic(
             return Ok(());
         }
 
-        let chunk = chunk_result?;
+        let chunk = chunk_result.map_err(|e| AppError::Custom(format!("Stream error: {e}")))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         // Process complete SSE lines
@@ -224,7 +225,8 @@ pub async fn stream_openai(
         .header("content-type", "application/json")
         .json(&body)
         .send()
-        .await?;
+        .await
+        .map_err(|e| AppError::Custom(format!("HTTP error: {e}")))?;
 
     if !resp.status().is_success() {
         let status = resp.status();
@@ -244,7 +246,7 @@ pub async fn stream_openai(
             return Ok(());
         }
 
-        let chunk = chunk_result?;
+        let chunk = chunk_result.map_err(|e| AppError::Custom(format!("Stream error: {e}")))?;
         buffer.push_str(&String::from_utf8_lossy(&chunk));
 
         while let Some(line_end) = buffer.find('\n') {
