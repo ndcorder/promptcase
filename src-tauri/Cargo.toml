@@ -21,6 +21,8 @@ keyring = { version = "3", features = ["apple-native", "windows-native", "sync-s
 tokio-stream = "0.1"
 futures-util = "0.3"
 tokio = { version = "1", features = ["sync"] }
+notify = "7"
+notify-debouncer-full = "0.4"
 tauri-plugin-dialog = "2"
 dirs = "6"
 walkdir = "2"

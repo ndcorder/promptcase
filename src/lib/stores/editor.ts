@@ -130,7 +130,9 @@ export async function saveFile(): Promise<void> {
   isLoading.set(true);
 
   try {
+    await api.markFileWriting(file.path).catch(() => {});
     await api.writeFile(file.path, undefined, content);
+    await api.unmarkFileWriting(file.path).catch(() => {});
 
     activeFile.update((f) => (f ? { ...f, body: content } : null));
     openTabs.update((tabs) =>

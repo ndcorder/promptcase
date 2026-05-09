@@ -25,12 +25,13 @@
     closeTab,
     openFile,
   } from "./lib/stores/editor";
-  import { loadFiles } from "./lib/stores/files";
+  import { loadFiles, startFileChangeListener, stopFileChangeListener } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
   import { sidebarPosition, showTagManager, showImportText } from "$lib/stores/layout";
   import ImportTextModal from "./lib/components/ImportTextModal.svelte";
   import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
+  import { addToast } from "./lib/stores/toast";
 
   let quickOpenVisible = $state(false);
   let commandPaletteVisible = $state(false);
@@ -42,7 +43,14 @@
   onMount(async () => {
     await loadFiles();
     await initTestingListeners();
-    return () => destroyTestingListeners();
+    await startFileChangeListener(
+      () => get(activeFile)?.path ?? null,
+      (path) => addToast(`"${path.split("/").pop()}" changed on disk`, "info"),
+    );
+    return () => {
+      destroyTestingListeners();
+      stopFileChangeListener();
+    };
   });
 
   // Register keybinding actions

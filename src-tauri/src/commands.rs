@@ -44,12 +44,20 @@ pub fn setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     app.manage(AppState {
-        repo_root,
+        repo_root: repo_root.clone(),
         config,
         search: std::sync::Mutex::new(search),
         repo: std::sync::Mutex::new(repo),
         prompt_cancelled: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
+        watcher: std::sync::Mutex::new(crate::watcher::WatcherState::new()),
     });
+
+    // Start file watcher
+    let state: tauri::State<'_, AppState> = app.state();
+    let mut w = state.watcher.lock().unwrap();
+    if let Err(e) = w.start(app.handle().clone(), repo_root) {
+        eprintln!("Warning: file watcher failed to start: {e}");
+    }
 
     Ok(())
 }
@@ -486,6 +494,40 @@ pub fn commit_file(
         .map_err(|_| AppError::Custom("Internal lock error".into()))?;
     let full_message = format!("{} {}", state.config.commit_prefix, message);
     promptcase_core::git_ops::commit_with_message(&*repo, &[path.as_str()], &full_message)?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+// ---------------------------------------------------------------------------
+// File watcher
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+pub fn start_watcher(app_handle: tauri::AppHandle, state: tauri::State<'_, AppState>) -> Result<serde_json::Value, AppError> {
+    let mut w = state.watcher.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    w.start(app_handle, state.repo_root.clone()).map_err(|e| AppError::Custom(e))?;
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn stop_watcher(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, AppError> {
+    let mut w = state.watcher.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    w.stop();
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn mark_file_writing(state: tauri::State<'_, AppState>, path: String) -> Result<serde_json::Value, AppError> {
+    let full_path = state.repo_root.join(&path);
+    let w = state.watcher.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    w.mark_writing(full_path);
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+#[tauri::command]
+pub fn unmark_file_writing(state: tauri::State<'_, AppState>, path: String) -> Result<serde_json::Value, AppError> {
+    let full_path = state.repo_root.join(&path);
+    let w = state.watcher.lock().map_err(|_| AppError::Custom("Internal lock error".into()))?;
+    w.unmark_writing(full_path);
     Ok(serde_json::json!({ "ok": true }))
 }
 

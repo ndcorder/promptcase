@@ -1,6 +1,7 @@
 import { writable, derived, get } from "svelte/store";
 import type { PromptEntry, FolderNode, SavedFilter } from "../types";
-import { api } from "../ipc";
+import { api, isTauri } from "../ipc";
+import type { UnlistenFn } from "@tauri-apps/api/event";
 
 export const promptEntries = writable<PromptEntry[]>([]);
 export const selectedPath = writable<string | null>(null);
@@ -219,5 +220,29 @@ export async function loadFiles(): Promise<void> {
     console.error("Failed to load files:", err);
   } finally {
     filesLoading.set(false);
+  }
+}
+
+let fileChangeUnlisten: UnlistenFn | null = null;
+
+export async function startFileChangeListener(
+  getActivePath: () => string | null,
+  showReloadToast: (path: string) => void,
+): Promise<void> {
+  if (!isTauri()) return;
+  const { listen } = await import("@tauri-apps/api/event");
+  fileChangeUnlisten = await listen<{ paths: string[] }>("files-changed", async (event) => {
+    await loadFiles();
+    const activePath = getActivePath();
+    if (activePath && event.payload.paths.some((p) => p.endsWith(activePath))) {
+      showReloadToast(activePath);
+    }
+  });
+}
+
+export function stopFileChangeListener(): void {
+  if (fileChangeUnlisten) {
+    fileChangeUnlisten();
+    fileChangeUnlisten = null;
   }
 }

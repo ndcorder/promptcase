@@ -3,6 +3,7 @@
 mod commands;
 mod llm;
 mod state;
+mod watcher;
 
 fn main() {
     tauri::Builder::default()
@@ -12,6 +13,10 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            commands::start_watcher,
+            commands::stop_watcher,
+            commands::mark_file_writing,
+            commands::unmark_file_writing,
             commands::list_files,
             commands::list_folders,
             commands::list_tags,

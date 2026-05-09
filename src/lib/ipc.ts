@@ -134,6 +134,14 @@ export const api = {
   }) => call<{ ok: boolean }>("run_prompt", { request }),
   cancelPrompt: () => call<{ ok: boolean }>("cancel_prompt"),
 
+  // File watcher
+  startWatcher: () => call<{ ok: boolean }>("start_watcher"),
+  stopWatcher: () => call<{ ok: boolean }>("stop_watcher"),
+  markFileWriting: (path: string) =>
+    call<{ ok: boolean }>("mark_file_writing", { path }),
+  unmarkFileWriting: (path: string) =>
+    call<{ ok: boolean }>("unmark_file_writing", { path }),
+
   // Export
   exportFileClipboard: (path: string, format: "raw" | "body" | "resolved") =>
     call<string>("export_file_clipboard", { path, format }),
