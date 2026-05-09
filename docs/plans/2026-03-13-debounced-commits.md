@@ -1,3 +1,10 @@
+---
+status: 100% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: 100% complete.** All 6 tasks implemented. `write_file` no longer auto-commits, `commit_with_message` and `generate_commit_message` added to git_ops, Tauri commands and IPC wired, config delay option (default 5s) in `.promptcase.yaml`, frontend debounce store with flush-on-close.
+
 # Debounced Commits with Diff-Based Messages
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

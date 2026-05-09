@@ -1,3 +1,10 @@
+---
+status: ~90% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~90% complete.** Core functionality complete: SavedFilter types (Rust + TS), CRUD store helpers, SmartFolders component with click-to-activate, context menu with edit/delete, save dialog, sidebar integration. Missing: backend unit tests (deserialization, defaults, roundtrip), icon field not utilized in UI (renders generic filter icon regardless of stored icon value).
+
 # Saved Search Filters Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

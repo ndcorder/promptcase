@@ -1,3 +1,10 @@
+---
+status: ~70% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~70% complete.** Settings system (4 tabs), dark/light themes, CSS custom properties, status bar, and keyboard shortcuts all implemented. Missing: empty states (History, Problems, Variables panels), loading states (skeleton pulse, progress bar), micro-interactions (tab close hover, toast animations), focus rings for keyboard nav, visual keybinding editor, and settings opens as modal rather than separate Tauri window.
+
 # Settings, Polish & Themes — Design Document
 
 **Target**: v0.1 release for prompt developers and power users

@@ -1,3 +1,10 @@
+---
+status: 100% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: 100% complete.** All 3 tasks implemented: backend tag query/mutation commands (list_tags, rename_tag, delete_tag, merge_tags) with comprehensive tests, frontend IPC and store, TagManager component (15.9KB) with full table UI integrated into both CommandPalette and Sidebar, git auto-commit on mutations with search index rebuild.
+
 # Tag Management Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

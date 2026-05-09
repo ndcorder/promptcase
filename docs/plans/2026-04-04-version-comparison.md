@@ -1,3 +1,10 @@
+---
+status: 100% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: 100% complete.** All tasks implemented: git_show_file backend command with tests, IPC binding, compare store with state management, CompareView component using @codemirror/merge with split-pane diff, HistoryPanel integration with A/B selection mode and starred version support, App layout integration.
+
 # Prompt Version Comparison Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

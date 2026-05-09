@@ -1,3 +1,10 @@
+---
+status: ~95% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~95% complete.** All 5 primary tasks done: RepoConfig expansion (Rust + TS types), light theme CSS variables, theme store with live switching and persistence, keybinding system with defaults and global handler, SettingsModal with 4 tabs. Missing: Rust unit tests for config round-trip and backward compatibility.
+
 # Settings, Polish & Themes Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

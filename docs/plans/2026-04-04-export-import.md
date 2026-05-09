@@ -1,3 +1,10 @@
+---
+status: ~85% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~85% complete.** Backend 100% done (export_file_clipboard, export_folder_zip, import_files, import_from_text commands). Frontend mostly wired: import files via Sidebar file picker, copy submenu with raw/body/resolved formats, zip export in FolderContextMenu. Missing: import-from-plain-text modal/dialog UI, import commands in CommandPalette, integration tests.
+
 # Export/Import Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

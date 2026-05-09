@@ -1,3 +1,10 @@
+---
+status: ~95% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~95% complete.** All core design system work done — CSS custom properties, native macOS overrides, titlebar overlay, CodeMirror theme, SVG icons, type badge removal. Remaining: uniform file icons in FolderTree (may already be done, needs visual verification) and StatusBar still conditionally shows "Fragment"/"Prompt" instead of always showing "Prompt".
+
 # Native macOS Redesign + Prompt/Fragment Unification
 
 ## Summary

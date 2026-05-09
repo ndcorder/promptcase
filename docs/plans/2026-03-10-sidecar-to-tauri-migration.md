@@ -1,3 +1,10 @@
+---
+status: ~95% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: ~95% complete.** All 39 Tauri commands implemented and wired. Full Rust backend with config, frontmatter, file ops, git ops, template, linter, tokenizer, search, LLM streaming, tag/folder management, batch operations. Frontend IPC fully migrated from sidecar RPC to Tauri `invoke()`. Remaining: documentation updates (README/PUBLISHING.md still reference Node.js sidecar architecture), old sidecar directory cleanup, migration guide.
+
 # Sidecar-to-Tauri Migration Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.

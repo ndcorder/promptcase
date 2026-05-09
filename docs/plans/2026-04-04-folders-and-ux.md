@@ -1,3 +1,10 @@
+---
+status: 100% complete
+last_reviewed: 2026-05-08
+---
+
+> **Status: 100% complete.** All tasks implemented: backend folder CRUD with auto-commit, duplicate file, batch move, drag-and-drop in FolderTree, drag reorder with localStorage persistence, folder/file context menus, MoveToFolderDialog, bulk selection (Cmd/Shift+Click), sidebar search, keyboard navigation.
+
 # Folders & UX Improvements Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
