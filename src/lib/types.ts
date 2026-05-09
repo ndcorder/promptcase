@@ -23,6 +23,7 @@ export interface PromptFrontmatter {
   created: string;
   modified: string;
   starredVersions: StarredVersion[];
+  tests: TestCase[];
 }
 
 export interface PromptFile {
@@ -143,6 +144,38 @@ export interface RecoveryBuffer {
   path: string;
   content: string;
   timestamp: string;
+}
+
+// ---------------------------------------------------------------------------
+// Eval types
+// ---------------------------------------------------------------------------
+
+export type AssertionType = "contains" | "notContains" | "matchesRegex" | "maxTokens" | "minTokens" | "startsWith";
+
+export interface Assertion {
+  type: AssertionType;
+  value: string | number;
+}
+
+export interface TestCase {
+  name: string;
+  variables: Record<string, string>;
+  assertions: Assertion[];
+}
+
+export interface AssertionResult {
+  assertion: Assertion;
+  passed: boolean;
+  detail: string;
+}
+
+export interface TestCaseResult {
+  name: string;
+  passed: boolean;
+  assertionResults: AssertionResult[];
+  responseText: string;
+  durationMs: number;
+  tokenCount: number;
 }
 
 export type PanelPosition = "left" | "right" | "bottom";

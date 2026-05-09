@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::Write as _;
 use std::path::PathBuf;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 use promptcase_core::error::AppError;
 use promptcase_core::search::PromptSearch;
@@ -615,6 +615,118 @@ pub fn cancel_prompt(state: tauri::State<'_, AppState>) -> Result<serde_json::Va
     state
         .prompt_cancelled
         .store(true, std::sync::atomic::Ordering::Relaxed);
+    Ok(serde_json::json!({ "ok": true }))
+}
+
+// ---------------------------------------------------------------------------
+// Eval commands
+// ---------------------------------------------------------------------------
+
+#[tauri::command(async)]
+pub async fn run_eval(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    path: String,
+    provider: String,
+    model: String,
+    temperature: f32,
+    max_tokens: u32,
+) -> Result<serde_json::Value, AppError> {
+    let content = promptcase_core::file_ops::read_raw(&state.repo_root, &path)?;
+    let file = promptcase_core::frontmatter::parse_prompt_file(&path, &content);
+
+    if file.frontmatter.tests.is_empty() {
+        return Err(AppError::Custom("No test cases defined in frontmatter".into()));
+    }
+
+    let api_key = crate::llm::get_api_key(&provider)?
+        .ok_or_else(|| AppError::Custom(format!("No API key configured for {provider}")))?;
+
+    let repo_root = state.repo_root.clone();
+    let tests = file.frontmatter.tests.clone();
+    let body = file.body.clone();
+    let path_owned = path.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let mut total_passed = 0usize;
+        let mut total_count = 0usize;
+
+        for test_case in &tests {
+            total_count += 1;
+            let start = std::time::Instant::now();
+
+            let vars = if test_case.variables.is_empty() {
+                None
+            } else {
+                Some(&test_case.variables)
+            };
+            let prompt_text = match promptcase_core::file_ops::read_raw(&repo_root, &path_owned) {
+                Ok(raw) => {
+                    match promptcase_core::template::resolve_template(
+                        &path_owned, &raw, &repo_root, vars,
+                    ) {
+                        Ok(resolved) => resolved.text,
+                        Err(_) => body.clone(),
+                    }
+                }
+                Err(_) => body.clone(),
+            };
+
+            let messages = vec![promptcase_core::types::LlmMessage {
+                role: "user".into(),
+                content: prompt_text,
+            }];
+
+            let result = crate::llm::run_prompt_collect(
+                &provider, &api_key, &messages, &model, temperature, max_tokens,
+            )
+            .await;
+
+            let duration_ms = start.elapsed().as_millis() as u64;
+
+            let test_result = match result {
+                Ok(resp) => {
+                    let token_count = (resp.input_tokens + resp.output_tokens) as usize;
+                    let assertion_results = promptcase_core::eval::check_assertions(
+                        &resp.text,
+                        token_count,
+                        &test_case.assertions,
+                    );
+                    let passed = assertion_results.iter().all(|r| r.passed);
+                    if passed {
+                        total_passed += 1;
+                    }
+                    promptcase_core::types::TestCaseResult {
+                        name: test_case.name.clone(),
+                        passed,
+                        assertion_results,
+                        response_text: resp.text,
+                        duration_ms,
+                        token_count,
+                    }
+                }
+                Err(e) => promptcase_core::types::TestCaseResult {
+                    name: test_case.name.clone(),
+                    passed: false,
+                    assertion_results: vec![],
+                    response_text: format!("Error: {e}"),
+                    duration_ms,
+                    token_count: 0,
+                },
+            };
+
+            let _ = app.emit("eval-result", &test_result);
+        }
+
+        let _ = app.emit(
+            "eval-done",
+            serde_json::json!({
+                "passed": total_passed,
+                "total": total_count,
+            }),
+        );
+    });
+
     Ok(serde_json::json!({ "ok": true }))
 }
 

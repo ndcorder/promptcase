@@ -1,5 +1,6 @@
 pub mod config;
 pub mod error;
+pub mod eval;
 pub mod file_ops;
 pub mod frontmatter;
 pub mod git_ops;

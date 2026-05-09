@@ -5,7 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::types::{PromptFile, PromptFrontmatter, PromptType, StarredVersion, VariableDefinition};
+use crate::types::{PromptFile, PromptFrontmatter, PromptType, StarredVersion, TestCase, VariableDefinition};
 
 static INCLUDE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\{\{include:([^}]+)\}\}").unwrap()
@@ -50,6 +50,7 @@ struct RawFrontmatter {
     created: Option<String>,
     modified: Option<String>,
     starred_versions: Option<Vec<RawStarredVersion>>,
+    tests: Option<Vec<TestCase>>,
 }
 
 #[derive(Deserialize)]
@@ -87,6 +88,8 @@ struct SerializableFrontmatter<'a> {
     modified: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     starred_versions: Option<Vec<SerializableStarredVersion<'a>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tests: Option<&'a Vec<TestCase>>,
 }
 
 #[derive(Serialize)]
@@ -225,6 +228,7 @@ fn build_frontmatter(
         created: raw.created.unwrap_or_else(|| now.to_string()),
         modified: raw.modified.unwrap_or_else(|| now.to_string()),
         starred_versions,
+        tests: raw.tests.unwrap_or_default(),
     }
 }
 
@@ -241,6 +245,7 @@ fn default_frontmatter(file_path: &str, body: &str, now: &str) -> PromptFrontmat
         created: now.to_string(),
         modified: now.to_string(),
         starred_versions: Vec::new(),
+        tests: Vec::new(),
     }
 }
 
@@ -297,6 +302,12 @@ pub fn serialize_prompt_file(frontmatter: &PromptFrontmatter, body: &str) -> Res
         )
     };
 
+    let tests = if frontmatter.tests.is_empty() {
+        None
+    } else {
+        Some(&frontmatter.tests)
+    };
+
     let serializable = SerializableFrontmatter {
         id: &frontmatter.id,
         title: &frontmatter.title,
@@ -308,6 +319,7 @@ pub fn serialize_prompt_file(frontmatter: &PromptFrontmatter, body: &str) -> Res
         created: &frontmatter.created,
         modified: Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
         starred_versions,
+        tests,
     };
 
     let yaml = serde_yaml::to_string(&serializable)?;
@@ -429,6 +441,7 @@ Hello {{include:header.md}} world
             created: "2024-01-01T00:00:00.000Z".to_string(),
             modified: "2024-01-01T00:00:00.000Z".to_string(),
             starred_versions: Vec::new(),
+            tests: Vec::new(),
         };
         let output = serialize_prompt_file(&fm, "Body here\n").unwrap();
         assert!(output.starts_with("---\n"));
@@ -648,6 +661,7 @@ Body"#;
                 label: "v1".to_string(),
                 date: "2024-01-01".to_string(),
             }],
+            tests: Vec::new(),
         };
         let output = serialize_prompt_file(&fm, "body\n").unwrap();
         assert!(output.contains("model_targets"));
@@ -674,6 +688,7 @@ Body"#;
             created: "2024-01-01T00:00:00.000Z".to_string(),
             modified: "2024-01-01T00:00:00.000Z".to_string(),
             starred_versions: Vec::new(),
+            tests: Vec::new(),
         };
         let output = serialize_prompt_file(&fm, "body").unwrap();
         assert!(!output.contains("model_targets"));

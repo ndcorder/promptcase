@@ -306,6 +306,143 @@ pub async fn stream_openai(
 }
 
 // ---------------------------------------------------------------------------
+// Non-streaming: collect full response (for eval)
+// ---------------------------------------------------------------------------
+
+pub struct CollectedResponse {
+    pub text: String,
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
+pub async fn run_prompt_collect(
+    provider: &str,
+    api_key: &str,
+    messages: &[LlmMessage],
+    model: &str,
+    temperature: f32,
+    max_tokens: u32,
+) -> Result<CollectedResponse, AppError> {
+    match provider {
+        "anthropic" => collect_anthropic(api_key, messages, model, temperature, max_tokens).await,
+        "openai" => collect_openai(api_key, messages, model, temperature, max_tokens).await,
+        other => Err(AppError::Custom(format!("Unknown provider: {other}"))),
+    }
+}
+
+async fn collect_anthropic(
+    api_key: &str,
+    messages: &[LlmMessage],
+    model: &str,
+    temperature: f32,
+    max_tokens: u32,
+) -> Result<CollectedResponse, AppError> {
+    let client = Client::new();
+
+    let api_messages: Vec<Value> = messages
+        .iter()
+        .filter(|m| m.role != "system")
+        .map(|m| serde_json::json!({"role": m.role, "content": m.content}))
+        .collect();
+
+    let system_text = messages.iter().find(|m| m.role == "system").map(|m| m.content.clone());
+
+    let mut body = serde_json::json!({
+        "model": model,
+        "messages": api_messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    });
+
+    if let Some(sys) = system_text {
+        body["system"] = Value::String(sys);
+    }
+
+    let resp = client
+        .post("https://api.anthropic.com/v1/messages")
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("content-type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| AppError::Custom(format!("HTTP error: {e}")))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AppError::Custom(format!("Anthropic API error ({status}): {text}")));
+    }
+
+    let json: Value = resp.json().await
+        .map_err(|e| AppError::Custom(format!("JSON parse error: {e}")))?;
+
+    let text = json["content"]
+        .as_array()
+        .and_then(|arr| arr.first())
+        .and_then(|block| block["text"].as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let input_tokens = json["usage"]["input_tokens"].as_u64().unwrap_or(0) as u32;
+    let output_tokens = json["usage"]["output_tokens"].as_u64().unwrap_or(0) as u32;
+
+    Ok(CollectedResponse { text, input_tokens, output_tokens })
+}
+
+async fn collect_openai(
+    api_key: &str,
+    messages: &[LlmMessage],
+    model: &str,
+    temperature: f32,
+    max_tokens: u32,
+) -> Result<CollectedResponse, AppError> {
+    let client = Client::new();
+
+    let api_messages: Vec<Value> = messages
+        .iter()
+        .map(|m| serde_json::json!({"role": m.role, "content": m.content}))
+        .collect();
+
+    let body = serde_json::json!({
+        "model": model,
+        "messages": api_messages,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    });
+
+    let resp = client
+        .post("https://api.openai.com/v1/chat/completions")
+        .header("Authorization", format!("Bearer {api_key}"))
+        .header("content-type", "application/json")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| AppError::Custom(format!("HTTP error: {e}")))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AppError::Custom(format!("OpenAI API error ({status}): {text}")));
+    }
+
+    let json: Value = resp.json().await
+        .map_err(|e| AppError::Custom(format!("JSON parse error: {e}")))?;
+
+    let text = json["choices"]
+        .as_array()
+        .and_then(|arr| arr.first())
+        .and_then(|choice| choice["message"]["content"].as_str())
+        .unwrap_or("")
+        .to_string();
+
+    let input_tokens = json["usage"]["prompt_tokens"].as_u64().unwrap_or(0) as u32;
+    let output_tokens = json["usage"]["completion_tokens"].as_u64().unwrap_or(0) as u32;
+
+    Ok(CollectedResponse { text, input_tokens, output_tokens })
+}
+
+// ---------------------------------------------------------------------------
 // Run prompt (dispatches to provider)
 // ---------------------------------------------------------------------------
 

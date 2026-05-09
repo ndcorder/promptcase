@@ -35,6 +35,8 @@ pub struct PromptFrontmatter {
     pub created: String,
     pub modified: String,
     pub starred_versions: Vec<StarredVersion>,
+    #[serde(default)]
+    pub tests: Vec<TestCase>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -326,4 +328,47 @@ pub struct PromptDonePayload {
 #[serde(rename_all = "camelCase")]
 pub struct PromptErrorPayload {
     pub error: String,
+}
+
+// ---------------------------------------------------------------------------
+// Eval types
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum Assertion {
+    Contains { value: String },
+    NotContains { value: String },
+    MatchesRegex { value: String },
+    MaxTokens { value: usize },
+    MinTokens { value: usize },
+    StartsWith { value: String },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct TestCase {
+    pub name: String,
+    #[serde(default)]
+    pub variables: HashMap<String, String>,
+    pub assertions: Vec<Assertion>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AssertionResult {
+    pub assertion: Assertion,
+    pub passed: bool,
+    pub detail: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct TestCaseResult {
+    pub name: String,
+    pub passed: bool,
+    pub assertion_results: Vec<AssertionResult>,
+    pub response_text: String,
+    pub duration_ms: u64,
+    pub token_count: usize,
 }

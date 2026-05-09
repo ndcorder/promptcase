@@ -56,6 +56,7 @@ fn main() {
             commands::delete_api_key,
             commands::run_prompt,
             commands::cancel_prompt,
+            commands::run_eval,
             commands::export_file_clipboard,
             commands::export_folder_zip,
             commands::import_files,

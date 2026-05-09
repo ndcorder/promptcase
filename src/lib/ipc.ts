@@ -11,6 +11,7 @@ import type {
   TagInfo,
   VariableDefinition,
   RecoveryBuffer,
+  TestCaseResult,
 } from "./types";
 
 export function isTauri(): boolean {
@@ -134,6 +135,20 @@ export const api = {
     maxTokens: number;
   }) => call<{ ok: boolean }>("run_prompt", { request }),
   cancelPrompt: () => call<{ ok: boolean }>("cancel_prompt"),
+  runEval: (
+    path: string,
+    provider: string,
+    model: string,
+    temperature: number,
+    maxTokens: number,
+  ) =>
+    call<{ ok: boolean }>("run_eval", {
+      path,
+      provider,
+      model,
+      temperature,
+      max_tokens: maxTokens,
+    }),
 
   // File watcher
   startWatcher: () => call<{ ok: boolean }>("start_watcher"),

@@ -227,6 +227,7 @@ mod tests {
                 created: "2025-01-01".to_string(),
                 modified: "2025-01-01".to_string(),
                 starred_versions: vec![],
+                tests: vec![],
             },
         }
     }
@@ -422,6 +423,7 @@ mod tests {
                 created: "2025-01-01".to_string(),
                 modified: "2025-01-01".to_string(),
                 starred_versions: vec![],
+                tests: vec![],
             },
         }
     }

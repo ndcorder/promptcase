@@ -3,10 +3,13 @@
   import VariablesPanel from "./VariablesPanel.svelte";
   import HistoryPanel from "./HistoryPanel.svelte";
   import TestPanel from "./TestPanel.svelte";
+  import EvalPanel from "./EvalPanel.svelte";
   import { activeFile } from "../stores/editor";
 
-  type InspectorTab = "info" | "test";
+  type InspectorTab = "info" | "test" | "eval";
   let activeTab = $state<InspectorTab>("info");
+
+  let hasTests = $derived(($activeFile?.frontmatter?.tests?.length ?? 0) > 0);
 </script>
 
 <aside class="inspector">
@@ -22,6 +25,13 @@
         class:active={activeTab === "test"}
         onclick={() => (activeTab = "test")}
       >Test</button>
+      {#if hasTests}
+        <button
+          class="inspector-tab"
+          class:active={activeTab === "eval"}
+          onclick={() => (activeTab = "eval")}
+        >Eval</button>
+      {/if}
     </nav>
 
     <div class="inspector-content">
@@ -31,6 +41,8 @@
         <HistoryPanel />
       {:else if activeTab === "test"}
         <TestPanel />
+      {:else if activeTab === "eval"}
+        <EvalPanel />
       {/if}
     </div>
   {:else}
