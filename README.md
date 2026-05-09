@@ -5,7 +5,7 @@ A desktop app for managing, versioning, and composing LLM prompt templates.
 Promptcase stores prompts as Markdown files with YAML frontmatter, giving you
 full control over metadata, version history, and template composition. It runs
 as a native desktop app powered by Tauri v2, with a Svelte 5 frontend and a
-Node.js sidecar for git operations and token counting.
+Rust backend for git operations, token counting, and search.
 
 ## Features
 
@@ -25,7 +25,7 @@ Node.js sidecar for git operations and token counting.
 | Layer | Technology |
 |-|-|
 | Frontend | Svelte 5, TypeScript, Vite, CodeMirror 6 |
-| Backend | Node.js sidecar (simple-git, gray-matter, js-tiktoken, MiniSearch) |
+| Backend | Rust / Tauri v2 (git2, serde_yaml, tiktoken-rs, built-in search) |
 | Desktop | Tauri v2 (Rust) |
 
 ## Getting Started
@@ -42,16 +42,9 @@ Node.js sidecar for git operations and token counting.
 git clone https://github.com/promptcase/promptcase
 cd promptcase
 npm install
-npm --prefix sidecar install
 ```
 
 ## Development
-
-Start the Vite dev server (frontend only, with mock backend):
-
-```bash
-npm run dev
-```
 
 Run the full desktop app with Tauri:
 
@@ -62,17 +55,15 @@ npm run tauri dev
 Run tests:
 
 ```bash
-npm test              # Frontend tests (Vitest)
-npm run test:sidecar  # Backend / sidecar tests
-npm run test:all      # Both
+npm test                                        # Frontend tests (Vitest)
+cargo test --manifest-path src-tauri/Cargo.toml  # Backend tests (Rust)
 ```
 
 ## Building
 
-Build the sidecar and package the desktop app:
+Package the desktop app:
 
 ```bash
-npm run sidecar:build
 npm run tauri build
 ```
 

@@ -38,14 +38,13 @@
     setTheme($currentTheme === "dark" ? "light" : "dark");
   }
 
-  let fileType = $derived($activeFile?.frontmatter.type ?? null);
 </script>
 
 <footer class="status-bar">
   <div class="left">
     {#if $activeFile}
       <span class="status-item file-type">
-        {fileType === "fragment" ? "Fragment" : "Prompt"}
+        Prompt
       </span>
       {#if errorCount > 0}
         <span class="status-item errors">

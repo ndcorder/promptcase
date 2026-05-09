@@ -36,6 +36,7 @@
 </script>
 
 <div class="tabs-bar" data-tauri-drag-region onmousedown={handleDragStart}>
+  {#if $isLoading}<div class="progress-bar"></div>{/if}
   {#each $openTabs as tab}
     <div
       class="tab"
@@ -77,6 +78,7 @@
 
 <style>
   .tabs-bar {
+    position: relative;
     display: flex;
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border-primary);

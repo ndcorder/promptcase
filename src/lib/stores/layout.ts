@@ -3,6 +3,7 @@ import { api } from "../ipc";
 
 export const sidebarPosition = writable<"left" | "right">("left");
 export const showTagManager = writable(false);
+export const showImportText = writable(false);
 
 export async function initLayout(): Promise<void> {
   try {

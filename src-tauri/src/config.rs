@@ -494,4 +494,114 @@ savedFilters:
         assert_eq!(loaded.saved_filters[1].tag, "draft");
         assert_eq!(loaded.saved_filters[1].query, "");
     }
+
+    // ── Pure serde round-trip & default tests (Task #2) ──────────────
+
+    #[test]
+    fn test_config_roundtrip() {
+        let original = RepoConfig::default();
+        let yaml = serde_yaml::to_string(&original).unwrap();
+        let restored: RepoConfig = serde_yaml::from_str(&yaml).unwrap();
+
+        assert_eq!(restored.version, original.version);
+        assert_eq!(restored.default_model, original.default_model);
+        assert_eq!(restored.auto_commit, original.auto_commit);
+        assert_eq!(restored.commit_delay_ms, original.commit_delay_ms);
+        assert_eq!(restored.editor_font_size, original.editor_font_size);
+    }
+
+    #[test]
+    fn test_config_backward_compat_missing_fields() {
+        // Provide only the required (non-defaulted) fields; all newer
+        // fields that carry #[serde(default)] must fall back gracefully.
+        let yaml = "version: 1\ndefaultModel: claude-sonnet-4\nautoCommit: true\ncommitPrefix: '[pc]'\ntokenCountModels: []\nlintRules: {}\n";
+        let config: RepoConfig = serde_yaml::from_str(yaml).unwrap();
+
+        assert_eq!(config.version, 1);
+        assert_eq!(config.default_model, "claude-sonnet-4");
+        // Fields with #[serde(default)] must fall back to their defaults
+        assert!(config.auto_commit); // default_true
+        assert_eq!(config.commit_delay_ms, 5000);
+        assert_eq!(config.editor_font_size, 14);
+        assert_eq!(config.editor_font_family, "Fira Code");
+        assert!(config.editor_line_numbers);
+        assert!(!config.editor_word_wrap);
+        assert!(!config.editor_show_invisibles);
+        assert_eq!(config.theme, "dark");
+        assert_eq!(config.sidebar_position, "left");
+        assert!(config.keybindings.is_empty());
+        assert!(config.saved_filters.is_empty());
+    }
+
+    #[test]
+    fn test_saved_filter_deserialization() {
+        let yaml = r#"
+version: 1
+defaultModel: claude-sonnet-4
+autoCommit: true
+commitPrefix: '[pc]'
+tokenCountModels: []
+lintRules: {}
+savedFilters:
+  - name: Bug reports
+    tag: bug
+    query: "status:open"
+    icon: ladybug
+"#;
+        let config: RepoConfig = serde_yaml::from_str(yaml).unwrap();
+
+        assert_eq!(config.saved_filters.len(), 1);
+        let f = &config.saved_filters[0];
+        assert_eq!(f.name, "Bug reports");
+        assert_eq!(f.tag, "bug");
+        assert_eq!(f.query, "status:open");
+        assert_eq!(f.icon, "ladybug");
+    }
+
+    #[test]
+    fn test_saved_filter_defaults() {
+        use crate::types::SavedFilter;
+
+        let yaml = "name: Minimal\n";
+        let filter: SavedFilter = serde_yaml::from_str(yaml).unwrap();
+
+        assert_eq!(filter.name, "Minimal");
+        assert_eq!(filter.tag, "");
+        assert_eq!(filter.query, "");
+        assert_eq!(filter.icon, "");
+    }
+
+    #[test]
+    fn test_saved_filter_roundtrip_serde() {
+        use crate::types::SavedFilter;
+
+        let mut config = RepoConfig::default();
+        config.saved_filters = vec![
+            SavedFilter {
+                name: "Alpha".into(),
+                tag: "a".into(),
+                query: "q1".into(),
+                icon: "star".into(),
+            },
+            SavedFilter {
+                name: "Beta".into(),
+                tag: "b".into(),
+                query: "q2".into(),
+                icon: "heart".into(),
+            },
+        ];
+
+        let yaml = serde_yaml::to_string(&config).unwrap();
+        let restored: RepoConfig = serde_yaml::from_str(&yaml).unwrap();
+
+        assert_eq!(restored.saved_filters.len(), 2);
+        assert_eq!(restored.saved_filters[0].name, "Alpha");
+        assert_eq!(restored.saved_filters[0].tag, "a");
+        assert_eq!(restored.saved_filters[0].query, "q1");
+        assert_eq!(restored.saved_filters[0].icon, "star");
+        assert_eq!(restored.saved_filters[1].name, "Beta");
+        assert_eq!(restored.saved_filters[1].tag, "b");
+        assert_eq!(restored.saved_filters[1].query, "q2");
+        assert_eq!(restored.saved_filters[1].icon, "heart");
+    }
 }

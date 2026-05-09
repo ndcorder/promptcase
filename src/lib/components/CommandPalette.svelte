@@ -2,7 +2,7 @@
   import { saveFile, showPreview, showSidebar, showInspector, showBottomPanel, activeFile, resolvedText } from "../stores/editor";
   import { api } from "../ipc";
   import { loadFiles } from "../stores/files";
-  import { showTagManager } from "../stores/layout";
+  import { showTagManager, showImportText } from "../stores/layout";
   import { get } from "svelte/store";
 
   interface Command {
@@ -31,6 +31,23 @@
     { id: "inspector", label: "Toggle Inspector", action: () => { showInspector.update((v) => !v); onClose(); } },
     { id: "bottom", label: "Toggle Bottom Panel", shortcut: "Cmd+J", action: () => { showBottomPanel.update((v) => !v); onClose(); } },
     { id: "tag-manager", label: "Tag Manager", action: () => { showTagManager.set(true); onClose(); } },
+    { id: "import-text", label: "Import from Text", action: () => { showImportText.set(true); onClose(); } },
+    { id: "import-files", label: "Import Files", action: async () => {
+      onClose();
+      try {
+        const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
+        const selected = await openDialog({
+          multiple: true,
+          filters: [{ name: "Markdown", extensions: ["md"] }],
+        });
+        if (!selected || (Array.isArray(selected) && selected.length === 0)) return;
+        const paths = Array.isArray(selected) ? selected : [selected];
+        await api.importFiles(paths, "");
+        await loadFiles();
+      } catch (err) {
+        console.error("Import files failed:", err);
+      }
+    } },
   ];
 
   let filteredCommands = $derived.by(() => {

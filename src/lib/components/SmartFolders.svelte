@@ -120,9 +120,13 @@
         onclick={() => handleClick(filter)}
         oncontextmenu={(e) => handleContextMenu(e, index)}
       >
-        <svg class="filter-icon" width="12" height="12" viewBox="0 0 12 12">
-          <path d="M1 2h10L7.5 6.5V10L4.5 11V6.5L1 2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
-        </svg>
+        {#if filter.icon}
+          <span class="filter-icon-emoji">{filter.icon}</span>
+        {:else}
+          <svg class="filter-icon" width="12" height="12" viewBox="0 0 12 12">
+            <path d="M1 2h10L7.5 6.5V10L4.5 11V6.5L1 2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/>
+          </svg>
+        {/if}
         <span class="filter-name">{filter.name}</span>
       </button>
     {/each}
@@ -200,6 +204,14 @@
   .filter-icon {
     flex-shrink: 0;
     opacity: 0.7;
+  }
+  .filter-icon-emoji {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    font-size: 12px;
+    line-height: 12px;
+    text-align: center;
   }
   .filter-row.active .filter-icon {
     opacity: 1;

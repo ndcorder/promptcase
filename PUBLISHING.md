@@ -41,7 +41,7 @@ Every major prompt management tool (PromptLayer, Langfuse, LangSmith, PromptHub,
 
 ### Repository Description
 
-> Local-first desktop app for managing, versioning, and composing LLM prompt templates. Git-backed history, YAML frontmatter, template composition, token counting. Built with Tauri, Svelte 5, and Node.js.
+> Local-first desktop app for managing, versioning, and composing LLM prompt templates. Git-backed history, YAML frontmatter, template composition, token counting. Built with Tauri v2, Svelte 5, and Rust.
 
 ### Topics
 
@@ -116,7 +116,7 @@ local-first
 > - Token counting for multiple models
 > - Full-text search across all prompts
 >
-> Stack: Tauri v2 (Rust) + Svelte 5 + Node.js sidecar. Lightweight native app, not an Electron wrapper.
+> Stack: Tauri v2 (Rust) + Svelte 5. Lightweight native app, not an Electron wrapper.
 >
 > GPL-3.0 open source: https://github.com/ndcorder/promptcase
 >
@@ -134,7 +134,7 @@ local-first
 >
 > The feature I use most is template composition: define reusable fragments and include them with `{{> fragment-name}}`. Combined with variable substitution, it's like having a proper templating system for prompts.
 >
-> Built with Tauri v2, Svelte 5, and a Node.js sidecar. Open source under GPL-3.0.
+> Built with Tauri v2 and Svelte 5. Open source under GPL-3.0.
 >
 > Repo: https://github.com/ndcorder/promptcase
 >
@@ -148,7 +148,7 @@ local-first
 | [r/OpenSource](https://reddit.com/r/OpenSource) | GPL-3.0, local-first, no vendor lock-in | 130k+ |
 | [r/ArtificialIntelligence](https://reddit.com/r/ArtificialIntelligence) | Prompt management as an emerging workflow need | 1.2M+ |
 | [r/sveltejs](https://reddit.com/r/sveltejs) | Svelte 5 + CodeMirror 6 technical deep-dive | 80k+ |
-| [r/rust](https://reddit.com/r/rust) | Tauri v2 architecture, sidecar pattern | 350k+ |
+| [r/rust](https://reddit.com/r/rust) | Tauri v2 architecture, native Rust backend | 350k+ |
 
 ---
 
@@ -175,13 +175,13 @@ Show HN: Promptcase – Local-first desktop app for versioning and composing LLM
 > - Token counting for Claude and GPT-4o
 > - Full-text search, command palette, real-time linting
 >
-> Prompts are plain files on disk — no database, no cloud, no lock-in. The git integration is handled by a Node.js sidecar using simple-git.
+> Prompts are plain files on disk — no database, no cloud, no lock-in. Git integration is handled natively in Rust via git2.
 >
 > It's GPL-3.0 open source: https://github.com/ndcorder/promptcase
 >
 > Every major prompt management tool (PromptLayer, Langfuse, PromptHub) is cloud-hosted. I wanted something that works offline and treats prompts as files I own. Curious what HN thinks about the local-first approach vs. cloud-based alternatives.
 >
-> Happy to answer questions about the Tauri + Svelte + Node sidecar architecture.
+> Happy to answer questions about the Tauri v2 + Svelte 5 + Rust architecture.
 
 ---
 
@@ -200,8 +200,7 @@ Show HN: Promptcase – Local-first desktop app for versioning and composing LLM
 3. **Architecture Deep-Dive**
    - Tauri v2 for the native shell (small binary, no Electron bloat)
    - Svelte 5 frontend with CodeMirror 6 editor
-   - Node.js sidecar for git ops, token counting (js-tiktoken), and full-text search (MiniSearch)
-   - Why a sidecar instead of Rust-native: ecosystem pragmatism
+   - Native Rust backend for git ops (git2), token counting (tiktoken-rs), and full-text search
 
 4. **Key Features with Screenshots**
    - YAML frontmatter editor
@@ -210,7 +209,7 @@ Show HN: Promptcase – Local-first desktop app for versioning and composing LLM
    - Token counting across models
    - Command palette and full-text search
 
-5. **What I Learned** — Tauri v2 sidecar pattern, Svelte 5 reactivity with CodeMirror, gray-matter for frontmatter parsing.
+5. **What I Learned** — Tauri v2 command architecture, Svelte 5 reactivity with CodeMirror, serde_yaml for frontmatter parsing.
 
 6. **What's Next** — Roadmap items, call for contributors.
 
@@ -266,7 +265,7 @@ Submit PRs to the following curated lists (all URLs verified as of March 2026):
 >
 > Key features: template composition (reuse prompt fragments), variable substitution, git diff viewer, token counting for Claude and GPT-4o, and full-text search. Everything runs locally — no accounts, no cloud, no lock-in.
 >
-> Built with Tauri v2 + Svelte 5 + Node.js sidecar. Open source under GPL-3.0.
+> Built with Tauri v2 + Svelte 5. Open source under GPL-3.0.
 >
 > Would love to hear how you currently manage your prompts and what features would make Promptcase more useful for your workflow!
 
@@ -314,7 +313,7 @@ Submit PRs to the following curated lists (all URLs verified as of March 2026):
 ### X (Twitter)
 
 - [ ] Post a demo GIF with a one-liner pitch on launch day
-- [ ] Write a technical thread about the Tauri + Svelte + Node sidecar architecture
+- [ ] Write a technical thread about the Tauri v2 + Svelte 5 + Rust architecture
 - [ ] Share traction metrics (stars, downloads) as social proof in follow-up posts
 
 ### LinkedIn

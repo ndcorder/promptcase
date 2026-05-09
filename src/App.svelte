@@ -28,7 +28,8 @@
   import { loadFiles } from "./lib/stores/files";
   import { templateHighlightingStyles } from "./lib/codemirror/template-styles";
   import { registerAction } from "$lib/stores/keybindings";
-  import { sidebarPosition, showTagManager } from "$lib/stores/layout";
+  import { sidebarPosition, showTagManager, showImportText } from "$lib/stores/layout";
+  import ImportTextModal from "./lib/components/ImportTextModal.svelte";
   import { initTestingListeners, destroyTestingListeners } from "$lib/stores/testing";
 
   let quickOpenVisible = $state(false);
@@ -121,6 +122,9 @@
   {/if}
   {#if $showTagManager}
     <TagManager onclose={() => showTagManager.set(false)} />
+  {/if}
+  {#if $showImportText}
+    <ImportTextModal visible={true} onClose={() => showImportText.set(false)} />
   {/if}
 </div>
 

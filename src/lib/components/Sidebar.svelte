@@ -464,11 +464,9 @@
   >
     {#if $filesLoading}
       <div class="skeleton-list">
-        <div class="skeleton" style="width: 70%"></div>
-        <div class="skeleton" style="width: 85%"></div>
-        <div class="skeleton" style="width: 60%"></div>
-        <div class="skeleton" style="width: 75%"></div>
-        <div class="skeleton" style="width: 50%"></div>
+        {#each [70, 85, 60, 75, 50] as w}
+          <div class="skeleton" style="width: {w}%; height: 16px;"></div>
+        {/each}
       </div>
     {:else if $folderTree.children.length === 0 && $folderTree.files.length === 0}
       <div class="empty-tree">
