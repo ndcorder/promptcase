@@ -389,28 +389,25 @@
     <h2 data-tauri-drag-region>Promptcase</h2>
     <div class="header-actions">
       <button class="action-btn" onclick={handleImport} title="Import .md files" aria-label="Import markdown files">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
           <path d="M1 8v2.5h10V8M6 1v7M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
-      <button class="action-btn" onclick={handleNewPrompt} title="New Prompt">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <button class="action-btn" onclick={handleNewPrompt} title="New Prompt" aria-label="New Prompt">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
           <path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        New Prompt
       </button>
-      <button class="action-btn" onclick={() => handleCreateFolder()} title="New Folder">
-        <svg width="12" height="12" viewBox="0 0 14 12" fill="none">
+      <button class="action-btn" onclick={() => handleCreateFolder()} title="New Folder" aria-label="New Folder">
+        <svg width="14" height="14" viewBox="0 0 14 12" fill="none">
           <path d="M1 2.5A1.5 1.5 0 012.5 1H5l1.5 2H11.5A1.5 1.5 0 0113 4.5v5A1.5 1.5 0 0111.5 11h-9A1.5 1.5 0 011 9.5z" stroke="currentColor" stroke-width="1.2"/>
           <path d="M7 5.5v3M5.5 7h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
         </svg>
-        New Folder
       </button>
-      <button class="action-btn" onclick={() => showTagManager.set(true)} title="Manage Tags">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+      <button class="action-btn" onclick={() => showTagManager.set(true)} title="Manage Tags" aria-label="Manage Tags">
+        <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
           <path d="M1 3h10M1 6h7M1 9h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
-        Tags
       </button>
     </div>
     {#if $selectedPaths.size > 1}
@@ -588,15 +585,15 @@
   }
   .sidebar-header h2 {
     margin: 0;
-    font-size: var(--font-size-base);
+    font-size: var(--font-size-xs);
     font-weight: var(--font-weight-semibold);
-    color: var(--text-secondary);
-    letter-spacing: 0.02em;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .header-actions {
     display: flex;
-    gap: var(--space-1);
+    gap: var(--space-2);
     margin-top: var(--space-2);
   }
   .selection-badge {
@@ -605,18 +602,17 @@
     padding: var(--space-1) var(--space-2);
   }
   .action-btn {
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-1);
-    padding: var(--space-1) var(--space-2);
+    width: 32px;
+    height: 32px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: var(--font-size-sm);
     transition: all var(--transition-base);
+    flex-shrink: 0;
   }
   .action-btn:hover {
     background: rgba(255, 255, 255, 0.10);
