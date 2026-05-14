@@ -43,5 +43,17 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      include: ["src/lib/**/*.ts"],
+      exclude: ["src/lib/types.ts", "src/vite-env.d.ts"],
+      reporter: ["text", "text-summary"],
+      thresholds: {
+        lines: 100,
+        functions: 100,
+        branches: 95,
+        statements: 100,
+      },
+    },
   },
 });
