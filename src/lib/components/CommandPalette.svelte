@@ -21,7 +21,7 @@
   let { visible, onClose }: Props = $props();
   let query = $state("");
   let selectedIndex = $state(0);
-  let inputEl: HTMLInputElement;
+  let inputEl = $state<HTMLInputElement>();
 
   const commands: Command[] = [
     { id: "save", label: "Save File", shortcut: "Cmd+S", action: () => { saveFile(); onClose(); } },

@@ -3,6 +3,7 @@ import type { RepoConfig } from "../../src/lib/types";
 
 export const defaultMockConfig: RepoConfig = {
   version: 1,
+  onboardingCompleted: false,
   defaultModel: "claude-sonnet-4-20250514",
   autoCommit: true,
   commitPrefix: "promptcase: ",

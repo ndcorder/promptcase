@@ -104,6 +104,7 @@ export interface RepoConfig {
   sidebarPosition: string;
   keybindings: Record<string, string>;
   savedFilters: SavedFilter[];
+  onboardingCompleted: boolean;
 }
 
 export interface SavedFilter {

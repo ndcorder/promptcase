@@ -7,7 +7,7 @@
   import { promptcaseTheme, promptcaseHighlighting } from "../codemirror/theme";
   import { markdown } from "@codemirror/lang-markdown";
 
-  let container: HTMLDivElement;
+  let container = $state<HTMLDivElement>();
   let mergeView: MergeView | null = null;
 
   function handleKeydown(e: KeyboardEvent) {

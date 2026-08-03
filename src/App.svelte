@@ -51,41 +51,56 @@
   const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
   const modKey = isMac ? "Cmd" : "Ctrl";
 
-  onMount(async () => {
-    await loadFiles();
-    try {
-      const config = await api.getConfig();
-      if (!config.onboardingCompleted) {
-        showWelcome = true;
+  onMount(() => {
+    let mounted = true;
+    let cleanup: (() => void) | undefined;
+
+    const initialize = async () => {
+      await loadFiles();
+      try {
+        const config = await api.getConfig();
+        if (!config.onboardingCompleted) {
+          showWelcome = true;
+        }
+      } catch {}
+      await initTestingListeners();
+      await startFileChangeListener(
+        () => get(activeFile)?.path ?? null,
+        (path) => addToast(`"${path.split("/").pop()}" changed on disk`, "info"),
+      );
+
+      try {
+        const buffers = await api.loadRecovery();
+        if (buffers.length > 0) {
+          recoveryBuffers = buffers;
+        }
+      } catch {
+        // no recovery data
       }
-    } catch {}
-    await initTestingListeners();
-    await startFileChangeListener(
-      () => get(activeFile)?.path ?? null,
-      (path) => addToast(`"${path.split("/").pop()}" changed on disk`, "info"),
-    );
 
-    try {
-      const buffers = await api.loadRecovery();
-      if (buffers.length > 0) {
-        recoveryBuffers = buffers;
-      }
-    } catch {
-      // no recovery data
-    }
+      startRecoveryAutoSave();
 
-    startRecoveryAutoSave();
+      const handleBeforeUnload = () => {
+        api.clearAllRecovery().catch(() => {});
+      };
+      window.addEventListener("beforeunload", handleBeforeUnload);
 
-    const handleBeforeUnload = () => {
-      api.clearAllRecovery().catch(() => {});
+      cleanup = () => {
+        stopRecoveryAutoSave();
+        destroyTestingListeners();
+        stopFileChangeListener();
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+
+      if (!mounted) cleanup();
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    void initialize().catch((error) => console.error("Initialization failed:", error));
 
     return () => {
-      stopRecoveryAutoSave();
-      destroyTestingListeners();
-      stopFileChangeListener();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      mounted = false;
+      cleanup?.();
+      cleanup = undefined;
     };
   });
 

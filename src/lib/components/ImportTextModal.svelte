@@ -12,7 +12,7 @@
   let text = $state("");
   let destination = $state("");
   let importing = $state(false);
-  let titleEl: HTMLInputElement;
+  let titleEl = $state<HTMLInputElement>();
 
   let canImport = $derived(title.trim() !== "" && text.trim() !== "");
 
@@ -44,7 +44,7 @@
       title = "";
       text = "";
       destination = "";
-      requestAnimationFrame(() => titleEl.focus());
+      requestAnimationFrame(() => titleEl?.focus());
     }
   });
 </script>

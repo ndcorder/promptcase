@@ -11,7 +11,7 @@
   let { visible, onClose }: Props = $props();
   let query = $state("");
   let selectedIndex = $state(0);
-  let inputEl: HTMLInputElement;
+  let inputEl = $state<HTMLInputElement>();
 
   let results = $derived.by(() => {
     if (!query) return $promptEntries.slice(0, 20);
